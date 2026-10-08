@@ -248,7 +248,7 @@ internal static class StatsScreen
         {
             var contributors=ContributorTiles.Create(key,items,BaseLsc.Rows,ModifierRuntime.Findings,Panel.CurrentWeaponSid);
             tileSets[key]=contributors;
-            float nameWidth=contentWidth-(2*PanelSpacing.RowInset+118+(contributors.Length>0 ? 30 : 0))*s;
+            float nameWidth=contentWidth-(PanelSpacing.RowInset+PanelSpacing.BuildValueWidth+PanelSpacing.BadgeGap+PanelSpacing.BadgeWidth+12+28)*s;
             float h=Math.Max(32*s,buildLabel!.CalcHeight(new GUIContent(text),nameWidth)+8*s);
             blocks.Add((cursor,h,text,value,key,false,false)); cursor += h;
             if (!expandedBonuses.Contains(key)) return;
@@ -350,12 +350,13 @@ internal static class StatsScreen
                 { if (!expandedBonuses.Add(block.Key)) expandedBonuses.Remove(block.Key); }
                 int count=tileSets[block.Key].Length;
                 GUI.Label(new Rect(8*s,block.Y+(block.H-26*s)/2,12*s,26*s),expanded ? "−" : "›",detailHeading!);
-                GUI.Label(new Rect(28*s,block.Y+4*s,contentWidth-(2*PanelSpacing.RowInset+118+(count>0 ? 30 : 0))*s,block.H-8*s),block.Name,buildLabel!);
-                float valueWidth=buildValue!.CalcSize(new GUIContent(block.Value)).x+4*s;
+                float valueWidth=PanelSpacing.BuildValueWidth*s;
                 float valueLeft=contentWidth-PanelSpacing.RowInset*s-valueWidth;
+                float badgeLeft=valueLeft-(PanelSpacing.BadgeGap+PanelSpacing.BadgeWidth)*s;
+                GUI.Label(new Rect(28*s,block.Y+4*s,badgeLeft-40*s,block.H-8*s),block.Name,buildLabel!);
                 if(count>0)
                 {
-                    var badge=new Rect(valueLeft-32*s,block.Y+(block.H-20*s)/2,24*s,20*s);
+                    var badge=new Rect(badgeLeft,block.Y+(block.H-20*s)/2,PanelSpacing.BadgeWidth*s,20*s);
                     GUI.DrawTexture(badge,StatsTheme.Badge);
                     GUI.Label(badge,new GUIContent(count.ToString(),null,count+" contributors"),badgeValue!);
                 }
