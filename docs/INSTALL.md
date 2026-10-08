@@ -1,10 +1,12 @@
 # Install Character Sheet
 
+Download from the [GitHub Releases page](https://github.com/tfendall/gunfire-reborn-character-sheet/releases). Under **Assets**, choose the **Setup ZIP** for guided installation or the **ModOnly ZIP** for manual installation. The repository is private, so sign in with a GitHub account that has repository access.
+
 Experimental Windows Steam x64 release. The tested game build is 25361614; compatibility with other builds is not established. Intermittent native startup crashes remain under investigation.
 
 ## Guided install
 
-1. Download and extract `CharacterSheet-VERSION-Setup.zip` anywhere outside the game folder.
+1. Download `CharacterSheet-VERSION-Setup.zip` from the [Releases page](https://github.com/tfendall/gunfire-reborn-character-sheet/releases) and extract it anywhere outside the game folder.
 2. Close Gunfire Reborn. Run `Install.cmd`. The guided installer uses Windows PowerShell and Windows Forms already included with Windows; it does not require a development SDK.
 3. Select the game folder. Steam libraries are detected automatically, or use **Browse**. This folder must contain `Gunfire Reborn.exe` and `GameAssembly.dll`.
 4. Click **Check installation**. Select a missing prerequisite and click **Open selected prerequisite page**. Install it using the instructions below, then check again.
