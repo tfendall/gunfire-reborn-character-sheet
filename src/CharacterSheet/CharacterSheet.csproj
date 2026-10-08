@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>GunfireStatsDiagnostic</AssemblyName>
+    <GameDir Condition="'$(GameDir)' == ''">$(GUNFIRE_GAME_DIR)</GameDir>
+  </PropertyGroup>
+  <Target Name="CheckGameReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GameDir)/BepInEx/interop/Assembly-CSharp.dll')" Text="Set GameDir or GUNFIRE_GAME_DIR to your game folder. Install the prerequisites and launch once to generate BepInEx interop references first." />
+  </Target>
+  <ItemGroup>
+    <Reference Include="$(GameDir)/BepInEx/core/0Harmony.dll" />
+    <Reference Include="$(GameDir)/BepInEx/core/BepInEx.Core.dll" />
+    <Reference Include="$(GameDir)/BepInEx/core/BepInEx.Unity.IL2CPP.dll" />
+    <Reference Include="$(GameDir)/BepInEx/core/Il2CppInterop.Runtime.dll" />
+    <Reference Include="$(GameDir)/BepInEx/interop/*.dll" />
+  </ItemGroup>
+</Project>

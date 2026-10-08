@@ -1,0 +1,25 @@
+name: Package experimental release
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    # A trusted Windows runner with an owned game and generated interop references.
+    # Never run pull-request code on this machine automatically.
+    runs-on: [self-hosted, Windows, gunfire-build]
+    steps:
+      - uses: actions/checkout@v4
+      - shell: powershell
+        run: |
+          ./scripts/Test.ps1
+          ./scripts/Build.ps1 -GameDir $env:GUNFIRE_GAME_DIR
+          ./scripts/Package.ps1
+      - shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = [regex]::Match((Get-Content src/CharacterSheet/Plugin.cs -Raw), 'ModVersion = "([^"]+)"').Groups[1].Value
+          $assets = @(Get-ChildItem "dist/$version" -File | ForEach-Object FullName)
+          gh release create "v$version" @assets --draft --prerelease --title "Character Sheet $version" --notes-file docs/RELEASE_NOTES.md --target "${{ github.sha }}"
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release creation failed.' }

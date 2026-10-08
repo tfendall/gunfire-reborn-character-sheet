@@ -14,3 +14,11 @@ Desktop.ini
 bin/
 obj/
 *.log
+artifacts/
+dist/
+*.dll
+*.dmp
+*.dat
+*.zip
+*.jsonl
+installer-state/

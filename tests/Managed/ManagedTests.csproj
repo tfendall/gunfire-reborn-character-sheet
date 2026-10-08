@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/CombatWindow.cs" Link="CombatWindow.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/TraceSink.cs" Link="TraceSink.cs" /><Compile Include="../../src/CharacterSheet/ReadBudget.cs" Link="ReadBudget.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/LscTotals.cs" Link="LscTotals.cs" /><Compile Include="../../src/CharacterSheet/LscCatalog.cs" Link="LscCatalog.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/LifecycleState.cs" Link="LifecycleState.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/BuildCatalog.cs" Link="BuildCatalog.cs" /><Compile Include="../../src/CharacterSheet/BuildBonuses.cs" Link="BuildBonuses.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/BuildNotesCatalog.cs" Link="BuildNotesCatalog.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DamageLedger.cs" Link="DamageLedger.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/BuildSheetModel.cs" Link="BuildSheetModel.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/ModifierModel.cs" Link="ModifierModel.cs" /><Compile Include="../../src/CharacterSheet/ModifierRuntime.cs" Link="ModifierRuntime.cs" /><Compile Include="../../src/CharacterSheet/ModifierCatalog.cs" Link="ModifierCatalog.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/ContributorTiles.cs" Link="ContributorTiles.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/PanelSpacing.cs" Link="PanelSpacing.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DamageTabModel.cs" Link="DamageTabModel.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/GemArtworkIds.cs" Link="GemArtworkIds.cs" /></ItemGroup>
+</Project>
