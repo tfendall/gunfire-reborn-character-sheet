@@ -7,6 +7,8 @@
   <ItemGroup><Compile Include="../../src/CharacterSheet/BuildCatalog.cs" Link="BuildCatalog.cs" /><Compile Include="../../src/CharacterSheet/BuildBonuses.cs" Link="BuildBonuses.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/BuildNotesCatalog.cs" Link="BuildNotesCatalog.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/DamageLedger.cs" Link="DamageLedger.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DamageOwnership.cs" Link="DamageOwnership.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DamageCapture.cs" Link="DamageCapture.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/BuildSheetModel.cs" Link="BuildSheetModel.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/ModifierModel.cs" Link="ModifierModel.cs" /><Compile Include="../../src/CharacterSheet/ModifierRuntime.cs" Link="ModifierRuntime.cs" /><Compile Include="../../src/CharacterSheet/ModifierCatalog.cs" Link="ModifierCatalog.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/ContributorTiles.cs" Link="ContributorTiles.cs" /></ItemGroup>

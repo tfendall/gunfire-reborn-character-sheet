@@ -4,7 +4,7 @@ internal sealed record DamageContribution(string Name,double Amount);
 internal static class DamageTabModel
 {
     internal static readonly string[] Elements={"Normal","Fire","Lightning","Corrosion","Other"};
-    private static string Source(string name)=>name is "Weapon hits" or "Weapon effects" ? "Weapon damage" : name.StartsWith("Skills") || name.StartsWith("Secondary skill") || name.StartsWith("Seasonal") ? "Skill damage" : name is "Burning" or "Bleeding" or "Damage over time" ? "Damage over time" : "Other damage";
+    private static string Source(string name)=>name == "Companions" ? "Companion damage" : name is "Weapon hits" or "Weapon effects" ? "Weapon damage" : name.StartsWith("Skills") || name.StartsWith("Secondary skill") || name.StartsWith("Seasonal") ? "Skill damage" : name is "Burning" or "Bleeding" or "Damage over time" ? "Damage over time" : "Other damage";
     private static string Element(string name)=>Elements.Contains(name) ? name : "Other";
     internal static SourceDamage[] Create(DamageLedger ledger)
     {

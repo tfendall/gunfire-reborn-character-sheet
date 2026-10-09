@@ -1,4 +1,5 @@
 static void Check(bool condition, string test) { if (!condition) throw new Exception(test); Console.WriteLine("PASS " + test); }
+DamageCaptureTests.Run(Check);
 var normal = new CombatWindow();
 for (int i = 0; i < 100; i++) normal.Add(new(i, 221, i < 60 ? 1 : 2, i < 20));
 var a = normal.Measure(100);

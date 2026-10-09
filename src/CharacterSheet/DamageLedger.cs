@@ -8,10 +8,10 @@ internal sealed class DamageLedger
     internal readonly Dictionary<string, double> Elements = new();
     internal readonly Dictionary<(string Source, string Element), double> Cells = new();
     internal void Clear() { Total = 0; Sources.Clear(); Elements.Clear(); Cells.Clear(); }
-    internal void Add(long damage, int type, int action, int extra = 0)
+    internal void Add(long damage, int type, int action, int extra = 0, bool companion = false)
     {
         if (damage <= 0) return;
-        string source = (type & 0xF00000) switch {
+        string source = companion ? "Companions" : (type & 0xF00000) switch {
             0x800000 => action >= 30000 && action <= 65500 ? "Weapon hits" : "Weapon effects",
             // Explicit server extra-damage markers from the local enum. These
             // identify specific effects; action IDs alone cannot identify casts.
