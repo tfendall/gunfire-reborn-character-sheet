@@ -6,21 +6,38 @@ using HarmonyLib;
 using SkillBolt;
 using System.Runtime.CompilerServices;
 
-[BepInPlugin("local.gunfire.statsdiagnostic", "Gunfire Stats Diagnostic", Plugin.ModVersion)]
+[BepInPlugin("local.gunfire.statsdiagnostic", "Gunfire Character Sheet", Plugin.ModVersion)]
 public class Plugin : BasePlugin
 {
-    internal const string ModVersion = "0.13.13";
+    internal const string ModVersion = "0.13.37";
     public override void Load()
     {
         Panel.Logger = Log;
         AddComponent<Panel>();
+        TraceStore.Enabled = Config.Bind("Diagnostics", "EnableResearch", false,
+            "Master switch for research observers and trace files. Existing per-observer settings are ignored while false. Restart required.").Value;
+        bool Research(string key,bool fallback,string description) => Config.Bind("Diagnostics",key,fallback,description).Value && TraceStore.Enabled;
         TraceStore.Start(Log);
         CrashDiagnostics.Install();
         Panel.AutoCapture = Config.Bind("Stats", "AutomaticCapture", true, "Capture stats during runs without showing the F8 diagnostic panel. Stats appear on the C/package screen.").Value;
-        // Compatibility test: no new UI/lifecycle code is reached at bootstrap.
-        // F8 after a valid player/weapon enables the advanced path for this launch.
+        EffectRefreshDiagnostic.ShowInBuild = Config.Bind("Stats", "ShowEffectiveBonuses", true, "Use fresh game-evaluated bonuses for uniquely matched contributors and compatible additive totals in the Build tab.").Value;
+        // Defer native UI/capture work until player and weapon readiness is stable.
         Panel.Capture = false;
-        Panel.ObserverName = Config.Bind("Diagnostics", "Observer", "AttackProbe", "One observer per launch: AttackProbe, PacketProbe, CacheProbe, FixedProbe, or ScaleProbe. F10 enables it during the run.").Value;
+        Panel.ObserverName = Config.Bind("Diagnostics", "Observer", "AttackProbe", "One observer per launch: AttackProbe, PacketProbe, CacheProbe, FixedProbe, or ScaleProbe. Requires EnableResearch; F10 enables it during the run.").Value;
+        StatusEffectProbe.Enabled = Research("CaptureStatusDetails", false, "Experimental read-only status research: log one active server state with its definition, formulas and extra numeric data per inventory cycle. Does not change bonus totals.");
+        ScoreboardDiagnostic.ResearchEnabled = Research("CaptureScoreboardDamage", true, "Log local server scoreboard reports and raw categories beside captured damage; does not change totals. Requires restart.");
+        CombatEvidence.Enabled = Research("CaptureCombatEvidence", true, "Broad packet/lifecycle combat evidence, including nonlocal entities. Read-only; bounded records and loss counters. Requires restart.");
+        ScoreboardDiagnostic.Enabled = Config.Bind("Stats", "UseGameDamageTotals", true,
+            "Use the game's scoreboard total and seasonal breakdown; show the remainder as Unattributed damage. Restart required.").Value;
+        ScoreboardSampling.Enabled = ScoreboardDiagnostic.Enabled;
+        try { CombatEvidence.Install(); }
+        catch(Exception ex) { CrashDiagnostics.Error("combat-evidence-install",ex); }
+        TooltipDiagnostics.Enabled = Research("CaptureTooltipCalculations", false, "Observe status-tooltip calculation inputs, return values and final text when the game calls them. Diagnostic only; requires restart.");
+        EffectiveDiagnostics.PropertiesEnabled = Research("CaptureEffectiveProperties", false, "Observe property/client modifier updates and survey stored versus game-resolved properties, including forecast values. Diagnostic only; restart required.");
+        EffectiveDiagnostics.StatesEnabled = Research("CaptureStateChanges", false, "Observe server and client state lifecycle and extra-data updates. Diagnostic only; restart required.");
+        EffectiveDiagnostics.CalculationsEnabled = Research("CaptureGameplayCalculations", false, "Observe natural skill snapshots, rule formulas and contextual tooltip evaluation. Does not invoke gameplay calculations; restart required.");
+        EffectRefreshDiagnostic.Enabled = Research("RefreshEffectCalculations", false, "Diagnostic no-hover refresh of active server effects with supported description patterns and available inputs. Unsupported cases are logged. Logs game expression results; ShowEffectiveBonuses controls production UI independently. Restart required.");
+        Log.LogInfo(TraceStore.Enabled ? "Research diagnostics enabled; bounded trace logging is active." : "Research diagnostics disabled; live stats remain enabled.");
         Log.LogInfo("Automatic stats start after player/weapon readiness has been stable for two seconds. Open C for stats; F8 only shows diagnostics.");
         CrashDiagnostics.Complete("plugin-load");
     }
@@ -43,6 +60,9 @@ public class Panel : MonoBehaviour
     private bool featuresEnabled;
     private float readySince = -1;
     private bool damageAttempted;
+    private bool scoreboardAttempted;
+    private bool tooltipsAttempted;
+    private bool effectiveAttempted;
     private float nextInventory;
     internal static string ObserverName = "AttackProbe";
     private string observerStatus = "Experimental observer OFF — F10 optional";
@@ -82,8 +102,22 @@ public class Panel : MonoBehaviour
             try { TickAdvanced(); }
             catch (Exception ex) { CrashDiagnostics.Error("advanced-update", ex); DisableAdvanced(ex); featuresEnabled = false; Capture = false; readySince = -1; }
         }
+        try { CombatEvidence.Tick(); }
+        catch (Exception ex) { CrashDiagnostics.Error("combat-evidence", ex); }
         try { DamageCapture.Drain(); }
         catch (Exception ex) { DamageCapture.Status = "Damage processing failed: " + ex.Message; CrashDiagnostics.Error("damage-processing", ex); }
+        try { DeathDiagnostic.Drain(); }
+        catch (Exception ex) { CrashDiagnostics.Error("death-diagnostic", ex); }
+        try { ScoreboardSampling.Tick(); }
+        catch (Exception ex) { CrashDiagnostics.Error("scoreboard-sampling", ex); }
+        try { ScoreboardDiagnostic.Drain(); }
+        catch (Exception ex) { CrashDiagnostics.Error("scoreboard-diagnostic", ex); }
+        try { TooltipDiagnostics.Drain(); }
+        catch (Exception ex) { CrashDiagnostics.Error("tooltip-diagnostic", ex); }
+        try { EffectiveDiagnostics.Tick(); }
+        catch (Exception ex) { CrashDiagnostics.Error("effective-diagnostic", ex); }
+        try { EffectRefreshDiagnostic.Tick(); }
+        catch (Exception ex) { CrashDiagnostics.Error("effect-refresh", ex); }
         TickPlayer();
     }
     // Keep these native type dependencies behind a method boundary, not just
@@ -98,7 +132,7 @@ public class Panel : MonoBehaviour
     private void TickPlayer()
     {
         if (!LoadingGuard.CanRead) return;
-        if (Input.GetKeyDown(KeyCode.F10) && !observerAttempted)
+        if (TraceStore.Enabled && Input.GetKeyDown(KeyCode.F10) && !observerAttempted)
         {
             observerAttempted = true;
             try
@@ -172,6 +206,39 @@ public class Panel : MonoBehaviour
                     }
                     catch (Exception ex) { DamageCapture.Status = "Damage observer FAILED; see log"; CrashDiagnostics.Error("damage-hook-install", ex); }
                 }
+                if (Capture && RunActive && (ScoreboardDiagnostic.Enabled || ScoreboardDiagnostic.ResearchEnabled) && !scoreboardAttempted)
+                {
+                    scoreboardAttempted=true;
+                    try
+                    {
+                        CrashDiagnostics.Begin("scoreboard-hook-install");
+                        new Harmony("local.gunfire.statsdiagnostic.scoreboard").CreateClassProcessor(typeof(ScoreboardDamageProbe)).Patch();
+                        CrashDiagnostics.Complete("scoreboard-hook-install");
+                        TraceStore.Marker("scoreboard-observer-on");
+                        ScoreboardSampling.ObserverReady=true;
+                        if(ScoreboardDiagnostic.ResearchEnabled)
+                        {
+                            DamageAudit.Enabled=true;
+                            new Harmony("local.gunfire.statsdiagnostic.damagepacket").CreateClassProcessor(typeof(DamagePacketProbe)).Patch();
+                            TraceStore.Marker("damage-packet-observer-on");
+                            new Harmony("local.gunfire.statsdiagnostic.death").CreateClassProcessor(typeof(DeathEventProbe)).Patch();
+                            TraceStore.Marker("death-observer-on");
+                        }
+                    }
+                    catch(Exception ex) { CrashDiagnostics.Error("scoreboard-hook-install",ex); }
+                }
+                if(Capture && RunActive && TooltipDiagnostics.Enabled && !tooltipsAttempted)
+                {
+                    tooltipsAttempted=true;
+                    try { TooltipDiagnostics.Install(); }
+                    catch(Exception ex) { CrashDiagnostics.Error("tooltip-hook-install",ex); }
+                }
+                if(Capture && RunActive && EffectiveDiagnostics.Enabled && !effectiveAttempted)
+                {
+                    effectiveAttempted=true;
+                    try { EffectiveDiagnostics.Install(); }
+                    catch(Exception ex) { CrashDiagnostics.Error("effective-hook-install",ex); }
+                }
                 CrashDiagnostics.Reading("weapon-property-lookup");
                 var weapon = id == 0 ? null : ItemPropCache.GetPropByItem(id);
                 string source = "ItemPropCache";
@@ -199,7 +266,7 @@ public class Panel : MonoBehaviour
             }
             if (snapshot != previous)
             {
-                Logger?.LogInfo(snapshot.Replace("\n", " | "));
+                if(TraceStore.Enabled)Logger?.LogInfo(snapshot.Replace("\n", " | "));
                 previous = snapshot;
             }
         }
@@ -232,7 +299,7 @@ public class Panel : MonoBehaviour
     private static void DisposeAdvanced() => StatsScreen.Dispose();
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void DisableAdvanced(Exception error) => StatsScreen.DrawFailed(error);
-    internal static void ResetStats() { DamageCapture.Reset(); BaseLsc.Reset(); TraceStore.Marker("manual-stats-reset"); }
+    internal static void ResetStats() { DamageCapture.Reset(); AuthoritativeDamage.Current.Reset(true); BaseLsc.Reset(); TraceStore.Marker("manual-stats-reset"); }
     public void OnDestroy() { Capture = false; if (featuresEnabled) DisposeAdvanced(); TraceStore.Stop(); }
 }
 

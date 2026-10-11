@@ -9,10 +9,22 @@
   <ItemGroup><Compile Include="../../src/CharacterSheet/DamageLedger.cs" Link="DamageLedger.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/DamageOwnership.cs" Link="DamageOwnership.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/DamageCapture.cs" Link="DamageCapture.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/StatusProbeSelection.cs" Link="StatusProbeSelection.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/ScoreboardDiagnosticModel.cs" Link="ScoreboardDiagnosticModel.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/TooltipObservationBuffer.cs" Link="TooltipObservationBuffer.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/InvestigationBuffer.cs" Link="InvestigationBuffer.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/EffectExpression.cs" Link="EffectExpression.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/EffectiveBonusView.cs" Link="EffectiveBonusView.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/EffectiveContributionMerge.cs" Link="EffectiveContributionMerge.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/BuildSheetModel.cs" Link="BuildSheetModel.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/ModifierModel.cs" Link="ModifierModel.cs" /><Compile Include="../../src/CharacterSheet/ModifierRuntime.cs" Link="ModifierRuntime.cs" /><Compile Include="../../src/CharacterSheet/ModifierCatalog.cs" Link="ModifierCatalog.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/ContributorTiles.cs" Link="ContributorTiles.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/PanelSpacing.cs" Link="PanelSpacing.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/DamageTabModel.cs" Link="DamageTabModel.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/GemArtworkIds.cs" Link="GemArtworkIds.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DamageAudit.cs" Link="DamageAudit.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DeathObservation.cs" Link="DeathObservation.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/CombatEvidenceModel.cs" Link="CombatEvidenceModel.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/ScoreboardSamplingState.cs" Link="ScoreboardSamplingState.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/AuthoritativeDamage.cs" Link="AuthoritativeDamage.cs" /></ItemGroup>
 </Project>

@@ -16,7 +16,11 @@ Copy-Item -LiteralPath $BuiltDll -Destination "$manual\BepInEx\plugins\GunfireSt
 Get-ChildItem -LiteralPath (Join-Path $root 'installer') -File | Copy-Item -Destination $guided
 Copy-Item -LiteralPath (Join-Path $root 'docs\INSTALL.md') -Destination "$guided\INSTALL.md"
 Copy-Item -LiteralPath (Join-Path $root 'docs\INSTALL.md') -Destination "$manual\INSTALL.md"
-foreach($destination in @($guided,$manual)){Copy-Item -LiteralPath (Join-Path $root 'docs\THIRD_PARTY.md') -Destination $destination}
+foreach($destination in @($guided,$manual)){
+    foreach($doc in @('THIRD_PARTY.md','DEBUGGING.txt','RELEASE_NOTES.txt')){
+        Copy-Item -LiteralPath (Join-Path $root ('docs\'+$doc)) -Destination $destination
+    }
+}
 [ordered]@{version=$version;payload='payload/GunfireStatsDiagnostic.dll';sha256=(Get-FileHash -LiteralPath $BuiltDll -Algorithm SHA256).Hash.ToLowerInvariant();experimental=$true} | ConvertTo-Json | Set-Content -LiteralPath "$guided\release.json" -Encoding UTF8
 $dist=Join-Path $root "dist\$version"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null

@@ -1,0 +1,91 @@
+Immortal outgoing-hit investigation (0.13.33)
+
+Verified from the installed GameAssembly.dll and matching IL2CPP metadata:
+- s2cwarskill.C2FSSkillStart RVA 0x962590
+- s2cwarskill.C2FSSkillTrigger RVA 0x962fa0
+- s2cwarskill.C2FSSkillThroughInfo RVA 0x962ed0
+- SkillBolt.CartoonData.PacketCartoon RVA 0x16ba660
+All four have unique ScriptMethod addresses (no native aliases in the dump).
+
+Start and Trigger call PacketCartoon. Trigger checks IsNeedSendNetData and
+CanTrigger, batches up to five CartoonData entries, serializes them, invokes
+basenet's virtual send, and clears the pending list. Its controlled and
+noncontrolled paths have different message headers; the latter includes AttID.
+ThroughInfo sends action number and changed SkillCacheData. Start sends initial
+cache data and bullet-change data as well as CartoonData.
+
+SClientHitInfo holds victim, location, normal, hit part, and scene-object
+references. SkillRayHit serialization writes position, normal, victim ID and
+hit-part index. SkillSpecialRayHit additionally writes touch. No explicit final
+credited damage amount exists in these structures. CartoonData contains target
+lists, ray lists, skill/node identifiers, positions, flags and an integer
+parameter dictionary. SkillCacheData includes additional integer parameters,
+element, charge and parent action. Arbitrary parameters are retained for study;
+they must not be assumed to represent server damage.
+
+SendLastSkillHitInfo populates target/hit-part cache parameters, position and
+speed, not a final damage result. CServerAction.WeaponDamage, PerformDamage,
+SelfDamage and ParasiticDamage all resolve to the shared empty 0x6b02d0 stub in
+this client binary. Do not patch these or claim they expose server computation.
+Annotated disassemblies are saved under artifacts/resolver-analysis.
+
+Implementation:
+Four passive typed prefixes feed the existing bounded combat-evidence queue,
+callback journal, per-hook rate limit and health reporting. Send-entry records
+include attacker, action, skill, perform, weapon, control flags and cache
+parameters. PacketCartoon records include actual serialized node identifiers,
+victim lists and bounded concrete ray-list copies. No basenet buffer is read,
+consumed or modified. No generic struct-list reflection is used. Records are
+explicitly marked send-attempt or serialize, never server acceptance. These
+observers do not modify the damage ledger, scoreboard or attribution.
+
+Next runtime validation:
+1. Verify all four combat-hook-on records and nonzero calls without errors,
+   suppression or dropped/incomplete chunks.
+2. Compare ordinary hits first to establish action/skill/target correlations.
+3. For a countdown-state Immortal (state 7952, then 7954), join outgoing victim
+   IDs to state/death events within the same scene, epoch and entity lifetime.
+4. Check which outgoing reports continue after the last GS2CWStatusHP, and
+   compare these with automatic scoreboard increments and other concurrent
+   combat. A serialization event does not prove server acceptance or amount.
+5. Even a clean isolated interval supports only interval attribution until a
+   numeric server result or trustworthy acknowledgement can be identified.
+   Do not distribute arbitrary scoreboard deltas among simultaneous hits.
+
+Build 0.13.33 includes the 0.13.32 authoritative orb attribution. Release build
+passed with zero warnings/errors; scripts/Test.ps1 passed. Native detours and
+Immortal correlations require next-launch gameplay validation. Not installed
+by this investigation; artifact: artifacts/outgoing-hits/GunfireStatsDiagnostic.dll.
+
+
+0.13.34: idle-trigger filtering and monster-struck follow-through
+Outgoing trigger entry records now require CanTrigger and a nonempty m_NetSend.
+This read-only prefilter runs inside the guarded diagnostic callback before
+payload copying, rate gating and queueing. Hook health records include a filtered
+counter distinct from suppressed (loss of eligible observations). Start, ThroughInfo
+and PacketCartoon observers remain unchanged. Never call IsNeedSendNetData from
+an observer: native analysis shows that it removes zero-length nodes and can
+clear the queue. Filter effectiveness still requires next-launch verification.
+
+Monster-struck response examined end-to-end:
+- DYPublic.Duonet.S2CDuoNet.s2cnetwar_GS2CStruckMonster RVA 0x5487a0
+  deserializes exactly three integers with widths 4, 1, 1: iVictim, iType,
+  iHitPart. There is no serialized damage amount, attacker or action number.
+- s2cnetwar.GS2CStruckMonster RVA 0x6cb0e0 resolves the victim's event target
+  and dispatches PlayerEvent.ServerBeHitShow (static field offset 0x158),
+  passing type and hit part.
+- OCServerMoveNS.ServerMoveBase.ServerBeHitShow RVA 0x181fe80 maps hit parts
+  to trigger names and invokes AnimatorInterface.SetTriggerWithAnimCtrl.
+  It does not compute damage, update HP or look up a hidden damage record.
+
+Thus these are server-issued hit-reaction notifications, not numeric damage
+acknowledgements. Existing observed timing strengthens association with the
+Immortal target but does not expose individual credited amounts. Adding another
+observer deeper in this animation path would not provide those amounts. Keep
+missing numeric credit unattributed in general combat; do not turn reaction
+counts or prior hit values into damage estimates. The passive ReceivedDamRecord
+observer remains the numeric per-monster candidate, but has not fired in tested
+ordinary gameplay. No new hooks or damage-credit rules added in 0.13.34.
+
+Release 0.13.34 built with zero warnings/errors, scripts/Test.ps1 passed.
+Artifact: artifacts/outgoing-filtered/GunfireStatsDiagnostic.dll. Not installed.

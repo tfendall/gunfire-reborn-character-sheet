@@ -1,0 +1,66 @@
+Effective-value observers: diagnostic build 0.13.17
+
+Purpose
+Observe the game's own stored values, property getters, state updates and
+calculation results to determine which can power live bonus displays. This
+build does not change the displayed bonus calculations or damage accounting.
+
+Enable under [Diagnostics], then restart:
+CaptureEffectiveProperties = true
+CaptureStateChanges = true
+CaptureGameplayCalculations = true
+Retain CaptureStatusDetails, CaptureScoreboardDamage and
+CaptureTooltipCalculations for comparisons. AutomaticCapture starts recording
+during runs without requiring F10.
+
+Coverage
+- PropObject notifications, player/item cache updates and client modifiers.
+- Server state add/remove/refresh/stack/extra-data changes and client states.
+- CSkillBase cache additions and bullet-change arguments, rule snapshots,
+  bullet formulas, nested Evaluate calls, tooltip calculation context,
+  S8 attribute refreshes and S9 formula results.
+- A rotating property survey of the local player, held weapon, companion and
+  recently observed skill-related objects. Stored values are logged alongside
+  declared getters (or GetPropValue where no getter exists).
+- Changed property keys schedule coalesced reads and report observation delay.
+
+Evidence and limits
+effective-hook-on/failed/missing records installation outcomes.
+effective-observation records include sequence, UTC, player, scene/reset
+revision, method, context, bounded inputs and result. Repeated calls survive.
+effective-health every five seconds reports calls, accepted/filtered/errors,
+queue drops, stale events and survey errors. A successful hook installation
+alone does not prove native calls reach the observer.
+
+Only main-thread callbacks with an active captured run are inspected. Generic
+Evaluate calls require an enclosing observed context; seasonal formula calls
+are explicitly unattributed. Loading/UI guards gate deferred property reads.
+Snapshots are bounded and native wrappers never cross into the log writer.
+Queue: 1,024 events, 32 drained per frame; changed keys: 256, eight per frame.
+Survey: up to 12 properties per 0.2 seconds, cooperative 2ms budget, 512 keys
+per object traversal. Native calls cannot be preempted by that budget. Payload
+formatting has depth/count/time limits and emits truncation markers.
+Bounded collection snapshots are not a complete dump. Accepted events can be
+dropped under load; health counters must be consulted before claiming absence.
+Remembered skill object IDs are cleared on scene/player/reset changes; their
+identity within a scene still requires runtime verification.
+
+Validation
+Managed tests exercise queue concurrency, loss reporting, clipping, stale
+rejection, nested/thread-local context and changed-key scheduling. Compilation
+checks generated interop signatures. Runtime hook delivery, native argument
+boxing, getter behavior, overhead and coverage require a fresh game launch.
+
+Next run
+1. Play normally without hovering effects: fight, use both skills and swap
+   weapons. This establishes what gameplay observers supply independently.
+2. Hover conditional effects and record their visible values, then change a
+   condition (weapon, health, stacks, expiry) and repeat.
+3. Compare no-hover observations, property values, calculation results and
+   tooltip values by object/state/action and time. Inspect hook health first.
+4. Only promote a value into the UI after its units, scope, timing and stacking
+   semantics are supported. Missing or filtered data must remain unknown.
+
+Rollback
+Close the game, restore the backed-up DLL and configuration, then relaunch.
+Alternatively disable the three new options and restart to retain older probes.

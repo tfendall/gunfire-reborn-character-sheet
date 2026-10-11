@@ -1,0 +1,27 @@
+Gunfire Character Sheet 0.13.37 (experimental)
+
+Damage totals now follow the game's scoreboard, with any remaining difference
+shown explicitly as Unattributed damage. Its expanded explanation reads:
+"Can include damage to immortal or invincible enemies, or slight rounding errors"
+
+POLE MONARCH Orb damage uses the game's seasonal breakdown instead of a
+reproduced formula. Both orb definitions are recognized, including when an orb
+is acquired after a zero-total reset. Missing per-hit attribution remains
+visible; a residual is not automatically assigned to the orb or to rounding.
+
+Effective bonuses resolved through the game's logic populate the existing
+contributor rows and cumulative values. Unresolved contributions remain unknown.
+
+Research diagnostics are disabled by default. The observers remain available
+through EnableResearch; see DEBUGGING.txt. Normal operation keeps authoritative
+totals and live effective bonuses without research trace output. Optional trace
+logging has per-session and directory storage limits.
+
+Known limitation: observed Immortal reaction packets do not provide numeric
+per-hit damage credit. The scoreboard total includes that credit, but its source
+can remain Unattributed.
+
+The preceding 0.13.36 gameplay session loaded successfully with research off and
+no logged errors or exceptions. This release updates the explanation and release
+documentation. Automated build, regression, installer and package checks are
+performed before publication. Frame-time overhead has not been benchmarked.

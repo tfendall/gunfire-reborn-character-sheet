@@ -50,7 +50,7 @@ internal static class InventoryCapture
         Source("season6", () => Season(typeof(S6Manager), "instance", hero.ObjectID, "S6DiceInfosInSlot"), status);
         Source("season8", () => Season(typeof(S8Manager), "_instance", hero.ObjectID, "S8GemItemDict", "S8ThirdItemDict"), status);
         Source("season9", () => Season9(hero.ObjectID), status);
-        Source("live-skills", () => "disabled: ephemeral skill snapshot polling", status);
+        Source("active-status-details", () => StatusEffectProbe.Sample(hero.ObjectID), status);
         Summary = "Diagnostic sources: " + string.Join(" · ", sourceStatus.Values) + "\nBase LSC: weapon component only; effect totals not resolved.";
     }
     private static string WeaponActions(NewPlayerObject hero, NewItemProp? weapon)
@@ -60,6 +60,7 @@ internal static class InventoryCapture
         var ammo = weapon.CurBullet;
         var capacity = weapon.MaxBullet;
         BuildBonuses.SetMagazine(weapon.ObjectID, ammo);
+        if(!TraceStore.Enabled)return $"ammo={ammo}/{capacity}";
         return $"ammo={ammo}/{capacity} secondaryAmmo={weapon.CurPFBullet}/{weapon.MaxPFBullet} chargeTime={Describe(weapon.ChargeTime)} fillTime={Describe(weapon.FillTime)} attackSpeed={Describe(weapon.AttSpeed)} primary={Describe(hero.PlayerCom?.LeftMouseASSlot)} secondary={Describe(hero.PlayerCom?.RightMouseASSlot)} reload={Describe(hero.PlayerCom?.ReloadMouseASSlot)} heroSkill={Describe(hero.PlayerCom?.PlayerSkillAttInfo)}";
     }
     private static string WeaponEffects(NewItemProp? weapon)
@@ -73,6 +74,7 @@ internal static class InventoryCapture
             collectingInscriptions=false;
             if(own.Contains("limit") || shared.Contains("limit") || own.Contains("unsupported") || shared.Contains("unsupported")) ModifierRuntime.Abort("weapon-inscriptions");
             else ModifierRuntime.Commit("weapon-inscriptions");
+            if(!TraceStore.Enabled)return "inscriptions="+own+" shared="+shared;
             return "inscriptions="+own+" shared="+shared+" disabled="+Describe(weapon.DisableInscription)+" sealed="+Describe(weapon.SealedInscription)+" enhance="+Describe(weapon.Enhance);
         }
         catch { ModifierRuntime.Abort("weapon-inscriptions");throw; }
@@ -81,6 +83,8 @@ internal static class InventoryCapture
     private static void Source(string name, Func<string> read, List<string> status)
     {
         if (sourceIndex++ != selected) return;
+        // These sources feed live UI state; other inventory surveys are research-only.
+        if(!TraceStore.Enabled && name is not ("buffs" or "client-buffs" or "weapon-effects" or "weapon-actions" or "season8"))return;
         CrashDiagnostics.Reading("inventory-" + name);
         ReadBudget.Begin();
         try

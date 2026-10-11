@@ -1,0 +1,42 @@
+Automatic scoreboard sampling — 0.13.30
+
+Diagnostics.AutomaticScoreboardSampling defaults to CaptureScoreboardDamage.
+Requires the installed stable TeamWarData.AddTeamerDMG observer, active capture,
+a local player, an active run, and LoadingGuard.Ready. Uses the main update loop.
+Waits two seconds after becoming eligible. Sends the existing no-argument
+s2cnetwar.C2GSTeamDamage request at most once per second, measured after replies.
+Requests continue while the run is ready, so settled totals are sampled too.
+Never changes the damage ledger or category totals.
+
+Only one automatic request can be outstanding. After ten seconds without a local
+reply, emits one timeout and remains suspended until a local report arrives.
+Loading does not clear outstanding requests. Native request exceptions disable
+sampling for the launch. A manual C response can unblock a timeout.
+
+scoreboard-sampling request/response records include monotonic times, request
+sequence, player/context, captured total and pending hits. Responses include
+elapsed time and sameContext. The protocol has no request ID: association means
+first local report after request, not proof the report answered that request.
+Manual C requests can overlap automatic requests. Existing scoreboard-diagnostic
+and damage-reconciliation records retain totals, deltas and packet audit buckets.
+A one-second cadence is a starting experiment, not a validated server rate limit.
+
+Detailed report activation, statically verified in current GameAssembly:
+GM.GMManager.SwitchDetailDataView (RVA 0x747120) refers to $showdetaildam 1 and
+$showdetaildam 0 and calls UIFunction.GMFunction.CheckCommand (0x11ba030).
+CheckCommand tries ClientOrder; unhandled dollar commands have their leading
+character removed and go to netgmcommand.CallCommand (0x8ac700), the GM transport.
+GM.GMManager.CheckGMDataCommand (0x741f50) also formats $showdamage {0}.
+GS2CShowDetailDam (0x6caa80) dispatches GMDetailData_Event; payload has iType,
+iTotalDam, iDps, and named sPerform/iDam entries. GS2CShowDamageInfo (0x6caa10)
+dispatches GMData_Event/SingleDamage with nested integer lists.
+Server permission/availability is not established by client disassembly. Commands
+were not sent or enabled in this build. Existing passive handlers remain present.
+The detailed struct-list payload still requires a dedicated typed adapter before
+activation testing; the broad safe copier deliberately skips unsupported native
+lists. No reflective native-list traversal or raw team packet hook was restored.
+
+Validation: managed pacing tests cover readiness, single outstanding request,
+timeout/no retries, late replies, loading and natural-response debounce. Release
+build passes with zero warnings/errors. Actual request/reply cadence and stability
+require a game run; do not infer runtime success from compilation.

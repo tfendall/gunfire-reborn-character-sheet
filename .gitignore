@@ -22,3 +22,5 @@ dist/
 *.zip
 *.jsonl
 installer-state/
+
+__pycache__/

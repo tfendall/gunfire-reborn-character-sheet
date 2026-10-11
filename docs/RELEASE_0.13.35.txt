@@ -1,0 +1,27 @@
+Gunfire Character Sheet 0.13.35
+
+- Uses the game's scoreboard total; uncategorized differences are shown as
+  Unattributed damage. Expanded details explain immune/Immortal hit behavior.
+- Uses the game's S8 seasonal breakdown for POLE MONARCH Orb attribution when
+  complete, avoiding overlap with captured seasonal hits.
+- Displays verified live effect values in existing build contributors/totals.
+- Research hooks and trace files are opt-in through EnableResearch. Existing
+  debug settings cannot activate them on their own after upgrading.
+- Research storage is bounded; observer code remains available for debugging.
+
+Known limits
+Immortal countdown damage can be credited by the game without numeric hit
+reports. It remains Unattributed; outgoing hit and reaction messages do not
+supply individual damage amounts. Totals update with server reports. Missing
+seasonal breakdowns fall back to captured attribution. Unresolved effective
+bonuses retain their normal fallback display. This is still an experimental
+mod using the documented prerequisites.
+
+Validation
+Release build and managed/installer regression tests pass, including storage
+caps, scoreboard reset handling, orb overlap, and effective-contributor merging.
+Final in-game smoke check is still required with research disabled: C-screen
+expansion/note wrapping, combat and live bonus refresh, scene transitions,
+manual reset/new run, and multiplayer. Also re-enable research for a short
+capture to confirm hook startup and bounded logging. Native runtime behavior
+cannot be established by managed tests alone.

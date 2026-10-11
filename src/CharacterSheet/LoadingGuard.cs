@@ -5,6 +5,7 @@ internal static class LoadingGuard
 {
     private static readonly WorldReadiness state = new();
     internal static bool Ready;
+    internal static int SceneId;
     internal static bool DisplayReady;
     internal static void Poll()
     {
@@ -13,6 +14,7 @@ internal static class LoadingGuard
             // Unity engine scene identity/loading flag, not GameSceneManager or
             // game run-state APIs. Do not inspect any game-owned objects here.
             var scene = SceneManager.GetActiveScene();
+            SceneId=scene.handle;
             bool loaded = scene.IsValid() && scene.isLoaded;
             Ready = state.Observe(scene.handle, loaded, Cursor.visible, StatsScreen.PackageOpen, Input.GetKey(KeyCode.C), Time.unscaledTime);
             // Cached UI can display immediately once this scene has settled.

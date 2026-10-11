@@ -1,0 +1,45 @@
+Gunfire Character Sheet 0.13.37: optional research diagnostics
+
+Default release operation
+Research is disabled. No broad combat, outgoing hit, death, tooltip, or property
+research hooks are installed. No JSONL trace writer or callback journal starts.
+The original damage capture and authoritative scoreboard observer remain active.
+UseGameDamageTotals and ShowEffectiveBonuses in [Stats] default to true. They do
+not require research. UseGameDamageTotals also enables automatic scoreboard
+sampling, limited to one outstanding request and at most one request per second.
+The former [Diagnostics] AutomaticScoreboardSampling setting is no longer used.
+
+Turn observers back on
+Close the game. Edit BepInEx/config/local.gunfire.statsdiagnostic.cfg:
+[Diagnostics]
+EnableResearch = true
+CaptureScoreboardDamage = true
+CaptureCombatEvidence = true
+Restart. Those two switches enable scoreboard reconciliation/raw packet/death
+analysis and the broad combat bundle (including outgoing hit observers).
+Additional optional switches, normally false:
+CaptureStatusDetails
+CaptureTooltipCalculations
+CaptureEffectiveProperties
+CaptureStateChanges
+CaptureGameplayCalculations
+RefreshEffectCalculations
+F10's selected experimental observer also requires EnableResearch.
+To stop research, set EnableResearch = false and restart. Other switches may be
+left in place for future debugging. Upgrades retain settings, but old observer
+flags alone do not activate the new master switch.
+
+Storage
+New JSONL files are under BepInEx/StatsDiagnostic/Research. Rotation happens at
+4 MiB or 10,000 records. Limits: 64 MiB per session and 256 MiB of trace files
+in this directory at startup plus this session. These limits assume a single
+game process. Logging stops at capacity; F8 trace health reports the limit.
+Archive needed traces and move/remove old research traces while the game is
+closed before recording more. Prior traces and callback journals are preserved;
+this build does not delete old investigation evidence automatically. Ordinary
+BepInEx startup/errors remain in its normal log even when research is off.
+
+Reporting
+Include the mod version, relevant trace session and all its -part files when
+research was enabled. Note queue drops/truncation or a reached storage limit;
+incomplete logs cannot establish that an event never occurred.

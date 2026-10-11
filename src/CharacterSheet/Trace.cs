@@ -8,6 +8,7 @@ using System.Reflection;
 
 internal static class TraceStore
 {
+    internal static bool Enabled;
     private static readonly object gate = new();
     private static TraceSink? sink;
     private static ManualLogSource? log;
@@ -16,7 +17,8 @@ internal static class TraceStore
     internal static void Start(ManualLogSource logger)
     {
         log = logger;
-        var dir = Path.Combine(Paths.BepInExRootPath, "StatsDiagnostic");
+        if(!Enabled)return;
+        var dir = Path.Combine(Paths.BepInExRootPath, "StatsDiagnostic", "Research");
         var stem = Path.Combine(dir, "trace-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff"));
         var path = stem + ".jsonl";
         sink = new TraceSink(stem);
@@ -24,11 +26,11 @@ internal static class TraceStore
         log.LogInfo("Trace file: " + path);
     }
     internal static void Marker(string marker) => Write("marker", marker, true);
-    internal static string Health => sink == null ? "Trace writer unavailable" : sink.Error.Length > 0 ? "Trace writer failed: " + sink.Error : "Trace queue drops: " + sink.Drops;
+    internal static string Health => !Enabled ? "Research diagnostics off" : sink == null ? "Trace writer unavailable" : sink.CapacityReached ? "Trace storage limit reached" : sink.Error.Length > 0 ? "Trace writer failed: " + sink.Error : "Trace queue drops: " + sink.Drops;
     internal static void Stop() => sink?.Dispose();
     internal static bool Local(int id)
     {
-        try { return Panel.Capture && Panel.LocalPlayerId != 0 && Panel.LocalPlayerId == id; }
+        try { return Enabled && Panel.Capture && Panel.LocalPlayerId != 0 && Panel.LocalPlayerId == id; }
         catch { return false; }
     }
     internal static void Write(string kind, string detail, bool force = false)

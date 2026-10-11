@@ -1,0 +1,68 @@
+No-hover evaluation diagnostics: 0.13.21
+
+Enable Diagnostics.RefreshEffectCalculations = true, then restart.
+Diagnostic only: no production bonus totals are changed.
+
+Coverage is selected by data patterns, not an item inclusion list. Enumerate
+active server states, up to 512, and rotate eight state instances per 0.5-second
+pass under existing main-thread loading/UI guards. Each complete rotation takes
+roughly ceil(state count / 8) passes; guards can delay it. Capped enumeration
+logs incomplete coverage. Client-side states remain outside this refresh path.
+
+Supported descriptions have one entry, zero level/tier selectors, no formula
+ranges, and ordinary parenthesized arithmetic. Fresh inputs include all bounded
+state extra fields, n from Count, dam from ExcessiveDam, and lvl from SrcLV or
+native talent source-level lookup. Missing variables are never guessed.
+Known native tooltip special branches (1668 and 8037) remain explicitly
+unsupported until their variable producers/formatting are adapted. These are
+exclusions for game-code exceptions, not a catalog of supported items.
+
+The whole template is preflighted before native evaluation. The game's
+Evaluate.OperateWithParam calculates each nested expression using a fresh
+dictionary. No arithmetic is hardcoded per effect. Static descriptions are
+labeled game-static-description; evaluated descriptions are labeled
+diagnostic-game-evaluator. Neither proves additive combat semantics.
+
+Limits: 32 extra fields, 2,048 description characters, eight nesting levels,
+16 evaluator calls per description. Unchanged fingerprints skip evaluation.
+Changed unsupported reasons are logged and invalidate previous results.
+Removal and scene/player/reset transitions clear cached observations.
+No shared tooltip dictionary, HUD writes, or gameplay-rule replay is used.
+
+Records: effect-refresh-result, effect-refresh-unresolved,
+effect-refresh-removed, effect-refresh-reset, effect-refresh-limit.
+Synthetic evaluator calls carry diagnostic-refresh context in observer logs.
+
+Validation: managed tests cover template parsing/preflight, named variables,
+missing input, nonfinite results, units, bounded work and fair state rotation.
+Battle Pace previously produced live no-hover values and a matching hover.
+Newly admitted patterns require live comparisons; unsupported ranges, source
+types and special branches remain unresolved. Next run: play without hovering,
+then hover changing effects to compare fresh inputs and final descriptions.
+
+0.13.22 UI promotion
+-------------------
+52 tooltip observations in trace-20261010-020936-063 matched the preceding
+refresh result for the same state instance and SID, including Mecha Crash,
+Arcane Surge, Weapon Fodder and changing Orb stored damage.
+Stats.ShowEffectiveBonuses defaults true. Build now includes an Active Effects
+section with game-resolved descriptions, no aggregation into existing subtotals.
+Hidden/internal states are omitted. Unsupported visible effects show unavailable;
+reads older than two seconds show their age. Complete scans remove absent states,
+and scene/player/reset transitions clear the managed UI cache. Rendering only
+uses managed snapshots. Native layout still requires visual validation in-game.
+
+0.13.23 integrated contributors
+------------------------------
+Removes the separate Active Effects section. Fresh resolved values are attributed
+by source kind/ID (or unique exact name when source metadata is unavailable),
+then replace same-source/same-metric static contributions before building rows
+and contributor tiles. Headers sum the resulting contribution set once.
+Only whole unqualified percentage clauses for supported damage scopes and rate
+of fire are admitted. Independent/final/total, target conditions, stored damage,
+companion wording, unknown attribution and duplicate state contributions remain
+excluded from general totals. Lucky Shot remains its measured rolling estimate;
+CritX remains its measured property. Neither is inflated by adding percentages.
+Reads older than five seconds are not merged. Rebuild starts from original known
+contributions every time, so removal/failure cannot leave live additions behind.
+UI integration still needs an in-game visual check.

@@ -1,0 +1,62 @@
+0.13.31 authoritative damage display
+
+The damage header and source percentages use the latest received server total.
+Source/element breakdown is snapshotted when reports drain; it does not keep
+advancing against a stale server denominator between reports. A positive remainder
+is Unattributed damage with Unknown element. A negative remainder is explicitly
+Reconciliation adjustment; raw hits are never rescaled or silently deleted.
+Raw capture ledger and diagnostic gap analysis are unchanged. Until first report,
+the UI falls back to captured damage. Manual Reset clears capture and anchors the
+server/source offsets to the NEXT report, excluding hits during that short wait.
+Sampling remains once per second when ready; loading/UI cooldowns can delay it.
+
+Orb evidence from trace-20261011-044108-277:
+time 656.648 stored 103526 -> 51763; separate packet 51763 extra 208.
+time 669.098 stored 63438 -> 31719; separate packet 31719 extra 208.
+time 693.165 stored 42182 -> 21091; separate packet 21091 extra 208.
+time 873.526 stored 87788 -> 43894; separate packet 43894 extra 208,
+plus 85392 extra 4448 and a 195-point periodic packet.
+time 891.427 stored 43894 -> 21947; separate packet absent, only 108209 extra 4448.
+The final interval's server total AND seasonal total increase by 130157, making
+the remainder 21948: stored release plus one point. State 39828 is named
+POLE MONARCH Orb, perform 51907, variable ExcessiveDam. This is strong evidence of
+an omitted release packet; it is not enough to universally credit each store
+change (multi-target delivery, timing and server reporting semantics unverified).
+No Orb-specific damage has been fabricated or inserted into the ledger.
+
+Immortal attribution survey:
+Existing GS2CImmunity packet contains attacker/action/victim/type, NO amount.
+It cannot recover damage numbers. Hit feed remains absent during observed
+countdowns despite increasing server credit. GM detailed reports remain possible
+but server availability is unverified; no debug activation commands sent.
+New passive observer GS2CReceivedDamRecord, RVA 0x6c8a10 (unique method address),
+contains iMonsterID, iTotal, iDps, iMaxDam. Handler forwards to TargetMesManager
+when its display flag is enabled, and appears to scale amounts before display.
+We log raw scalar fields only. It has no attacker ID, so even successful delivery
+would not automatically establish local-player attribution in multiplayer.
+No reflective native list traversal or team-packet hook added. Future runtime
+coverage will determine whether the report is emitted in ordinary combat.
+
+
+0.13.32: authoritative S8 orb attribution
+Confirmed against the installed game's StreamingAssets/language/#GF_defaultcsv.csv,
+line 11799: s8thirditem_name_1007 and state_name_39828 both name POLE MONARCH Orb.
+SuitHarmDesc constructor (RVA 0xb098f0) initializes S8Map[1007]=11;
+SetTeamerInfoDataS8 (RVA 0xb07720) reads category 1 and that detail key.
+Annotated disassemblies are in artifacts/resolver-analysis.
+
+The main-thread scoreboard drain requires the local player's S8 inventory to contain
+item 1007, a complete copied breakdown, nonnegative values, unique detail keys,
+and category 1 sum equal to the reported seasonal total. It then replaces the
+captured seasonal partition with server detail values: detail 11 is POLE MONARCH
+Orb, other detail IDs retain generic seasonal labels. Replacing the whole seasonal
+partition avoids inventing a per-orb packet mapping (208/353 are not exclusive).
+Server details have no element, so they use Unknown. The overall authoritative
+total and raw damage/audit ledger remain unchanged. Invalid or incomplete reports
+fall back to captured attribution. Reset baselines include seasonal detail values;
+if that baseline was unavailable, seasonal replacement is disabled for the reset
+window rather than crediting pre-reset damage. No new native hooks are installed.
+
+Validated Release build 0.13.32 and scripts/Test.ps1, including replacement,
+mixed seasonal entries, fallback, manual reset, and new-run baseline cases.
+Runtime UI validation remains pending; build is artifacts/orb-attribution.

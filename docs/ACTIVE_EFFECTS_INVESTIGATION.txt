@@ -1,0 +1,365 @@
+ACTIVE EFFECTS: OBSERVATION-FIRST INVESTIGATION AND IMPLEMENTATION PLAN
+Investigation date: 2026-10-09
+
+Decision
+========
+Prefer observing the game's applied properties and action-time calculations.
+Do not start a per-scroll formula engine. Use tooltip evaluation as a separate
+evidence channel and a fallback, not the assumed source of every live bonus.
+
+There are useful non-hover calculation paths in this client. There is not yet
+evidence of one universal callback containing all effective damage modifiers.
+The proposed implementation therefore measures coverage before promoting values
+to the production build overview. A snapshot calculated for one attack cannot
+silently become an always-current, general player bonus.
+
+Scope and evidence
+==================
+Inspected installed GameAssembly.dll and matching IL2CPP method/field metadata,
+native call sites and relevant method bodies, existing mod collectors, and the
+0.13.16 Nona run beginning trace-20261009-225550-571, including rotated files.
+GameAssembly SHA256:
+0EF391262EF16E0FB6C6F543A260ACA28C14EAC327E6DA603DA1DE8968DA9C91
+
+Reproducible local scripts, annotated disassembly, and trace summaries are in
+artifacts/resolver-analysis. The scripts use the local inspection/dump directory;
+do not distribute game binaries, dumps, or full user traces with releases.
+Native addresses below are RVAs for this build, not portable patch addresses.
+Resolve future patches through generated interop methods and verified signatures.
+
+The reference scan checked direct relative calls AND tail jumps in executable
+sections, verifying instruction boundaries within mapped methods. It does not
+prove absence of indirect/delegate calls, inlined code, or server-side logic.
+IL2CPP shares generic implementations: call-site Method$ metadata, not the first
+symbol alias for an address, determines the generic type. This matters throughout
+the disassembly, particularly dictionary calls.
+
+This investigation changed no installed DLL/config and invoked no game methods.
+The existing diagnostic build remains 0.13.16. New hooks below are a plan, not
+already collected evidence.
+
+1. Property updates and effective-value getters: highest-priority new path
+=======================================================================
+Confirmed network flow:
+  s2cnetaddobject.GS2CPropChange (6B8D00)
+    -> NewObjectCache.UpdatePlayerProp (136C7C0)
+    -> PropObject.UpdatePropValue (B29600)
+  GS2CPetPropChange (6B8AE0) also routes through UpdatePlayerProp.
+  GS2CItemPropChange (6B85A0)
+    -> ItemPropCache.UpdatePropByItem (107E510)
+    -> PropObject.UpdatePropValue.
+Packets carry target IDs and string/object property dictionaries.
+
+PropObject supports immediate property-change notifications and batched changes.
+ExeAllCachedValueChangeEvent (B28E20) dispatches property key and object ID through
+ScriptEventManager, then clears the processed batch. It does not pass a finished
+numeric bonus as the event payload. Read the corresponding effective getter
+after application, or observe its natural return value.
+
+The important discovery:
+  PropObject.GetPropValue<T> recognizes TYPE_FORECASTATTR (5) and
+  TYPE_FORECASTVAR (6), delegates to ClientPrepData.GetClientPrepDataValue<T>,
+  and returns the game's resolved property value.
+  ClientPrepData combines the stored PropItem and client adjustments through
+  PropItem.ForecastNapeCalculate before converting the result.
+
+The existing LiveProperties.Read explicitly admits only property types
+0, 3, 4, 8, 9, 11. It skips 5 and 6 and generally inspects raw boxed payloads.
+Consequently, previous numeric traces are NOT an exhaustive survey of effective
+properties. They cannot establish that forecast-based bonuses are unavailable.
+The old traces also sample only the player and held weapon, not every owned
+perform/skill property object. Ordinary typed getters for LuckyHit/CrazyEff were
+checked, but that does not validate every other property type.
+
+What is still unknown:
+- Which desired modifiers actually exist as forecast properties in this build.
+- Whether a value is a client prediction, a replicated value, or a complete
+  effective combat quantity. These are distinct provenance categories.
+- Whether combined property values expose contributor attribution. An observed
+  total can be useful without a per-scroll decomposition.
+- No dedicated general Skill DMG property was found among the declared player
+  getters or existing snapshots. Dynamic dictionaries and per-perform objects
+  need observation before drawing a broader conclusion.
+
+2. Client modifiers: observe the inputs already calculated by gameplay
+====================================================================
+IncreaseAtt.UpdataAddValInfo (106F990) and UpdataAddProportionInfo (106F5A0)
+feed ClientPrepData.ClientAddPrepDate (1D1F860). Inputs include object ID,
+property key, modifier kind, value, and reversal. IncreaseAtt tracks its previous
+contributions; changes may be deltas or reversals rather than absolute totals.
+Do not accumulate these again into a competing stats engine.
+
+Confirmed direct callers include:
+- PassiveSkillEventCallBack.PassiveWeaponAttOfSource.
+- PassiveSkillEventCallBack.PassiveWeaponSkillAttOfSource.
+- CActionBase.SkillSetWeaponClientAtt.
+- CBehaviorAction.SetItemClientAtt and CAction999.Action.
+- OCHeroShootStatus.GenerateClientWeaponDate feeds ClientAddPrepDate directly.
+
+This crosses passive rules, skill actions, and state behaviors: it is broader
+than tooltip formatting. Observe mutation arguments immediately, then read the
+game's resulting property through its getter. The shared ClientPrepDateFormat
+object is reused; copy primitive contents during the callback, never retain it.
+
+ClientPrepData uses pooled scratch PropItems during reads. Do not call it from a
+background thread or recursively from inside its own calculation. Delayed reads
+belong on the guarded main-thread pump. The existence of a getter does not imply
+it is allocation-free or safe in every game lifecycle phase.
+
+3. Action-time resolved snapshots: strongest eventual-consistency candidate
+==========================================================================
+CSkillBase.AddBulletChangeFixedArg(string,int,out bool) and
+AddBulletChangePerTenThousandArg(string,int,out bool) both call
+CalculatePropCacheAddition (18DD6B0).
+
+CalculatePropCacheAddition clones the original item property cache on first use,
+reads a base property, applies stored fixed and proportional arguments, writes
+the calculated property into the active cache, and returns a result with a
+float-result indicator. It MUTATES the skill/property cache. Observe natural
+calls; never invoke it merely to inspect a stat.
+
+BulletChange.CRuleAction.BulletChangeCBSetSkillSnapshot (A60240) obtains values
+through CFormula.RunFormula, applies those fixed/proportional changes, and records
+collection data. This is actual action processing, not a hover path.
+
+Existing CacheProbe/FixedProbe/ScaleProbe code targets these methods, but they
+are legacy one-observer/F10 diagnostics, not the always-on tooltip experiment.
+AttackProbe only records weapon identity; PacketProbe only records action and
+perform identity. Their presence in source does not mean the current run has
+already logged computed snapshot values.
+
+Proposed records must preserve player/owner, action number, weapon object/SID,
+perform ID, property key, result representation, timestamp, and state revision.
+Float branches write the native float to ItemPropCache before returning an int;
+do not assume the int return is the full-precision property or an unscaled
+percentage. Compare the result with the typed cache getter in diagnostics.
+Record intermediate fixed/proportional calls separately; prefer the completed
+snapshot at a verified action boundary for a last-action value.
+
+This path can support 'last observed on an attack' values. It does not prove a
+universal damage multiplier, correct target-specific aggregation, or final
+server hit damage. Idle time may produce no fresh observation at all.
+
+4. Other evaluators: real, but limited in scope
+=============================================
+BulletChange.CFormula.RunFormula (A5BC40) dispatches indexed delegates with a
+player, rule handler and expression list. Direct callers include state creation,
+state-count changes, skill snapshots, ammo operations, and rule checks.
+Inspected delegates read callback context, properties, client states, beacon
+counts, and other rule-specific inputs; one dispatch returns a constant zero.
+Thus a scalar result is not automatically a damage bonus. Capture source rule,
+expression/function ID, caller context, result type and primitive result. Do not
+call action/rule methods independently or reevaluate chance/consumption logic.
+
+S9.FormulaCalculator.CalculateFormula (D460B0) is a separate double-valued
+expression evaluator. The direct caller found was GS2CS9RefreshTalismanAttr,
+which evaluates a state ValueFormula and sets the talisman's Stack. It offers a
+season-specific observation source, not evidence of a universal effect engine.
+
+GS2CRefreshSeasonItemAttr (95B010) dispatches to S8 gem/third-item and S7
+crystal/module attribute refresh methods. Include the active season's item
+refresh boundary in the diagnostic context/invalidation stream, especially for
+the current S8 run. Do not assume ordinary weapon property events cover these
+separate item stores. CArgBase.GetAttStateExtraInfo also reads named extra values
+from attacker states during skill processing; this is an input-consumption
+observation point, not a separate final-bonus calculator.
+
+Evaluate.EvaluateInfixExpression (10C7D60) also has an ASAllBulletShoot cooldown
+caller. Again, evaluation activity does not establish damage semantics.
+
+5. State lifecycle: authoritative timing and raw inputs, not guaranteed totals
+============================================================================
+Observe StateManager.AddState, DelState, RefreshState, RefreshStateCnt,
+RefreshExtraInfo, ClearPlayerState and ClearAll. Observe client-side state add,
+delete and clear separately when relevant.
+
+GS2CStateRefreshExtraInfo (6C0630) feeds StateManager.RefreshExtraInfo (10B4CE0).
+The latter merges received extra entries into stored state data and can dispatch
+behavior/state events. An incoming extra dictionary may be an incremental patch;
+do not replace the complete cached dictionary with it. Capture incoming fields
+and the committed bounded snapshot as distinct records.
+
+Use lifecycle events to invalidate cached results, establish ownership and
+presence, and schedule deferred reads. Zero count is not absence. Capture
+identity before removal. Extra-data updates and state creation may need pending
+correlation rather than assuming a fixed arrival order. Separate server instance
+IDs from negative client IDs; SID alone is not unique. Handle scene/run changes,
+object reuse, companion replacement, weapon swaps, expiry and source removal.
+
+6. Tooltip path: precise resolved descriptions, but no universal passive feed
+============================================================================
+Confirmed chain:
+  UpdateDescObj (ED5CE0) -> OperateDesc (ED35B0)
+    -> Evaluate.OperateWithParam (10C8600)
+  or OperateDescByFormula (ED31C0), including min/max and special relic rules.
+The evaluator substitutes explicit dictionary values, evaluates, clamps, and
+formats via KeepDecimal. No UI instance is required by its public signature.
+
+The direct callers found for OperateWithParam are the status-display paths.
+UpdateDescObj's direct caller found was OnEnterState. GetValue can evaluate a
+nonempty ValueFormula during ordinary icon updates; if empty, it returns count
+text. Waiting for more GetValue events does not imply descriptions will resolve.
+
+Runtime corroboration: the first expanded snapshot of this run had 428 tooltip
+observations: 414 GetValue, four OperateDesc, and only two final UpdateDescObj
+results. Those final results were Mega Summon +5% and Mana Infusion +0%.
+Seven of nine installed methods had fired; the range/special-description methods
+had not. The later state survey through 23:18 UTC includes many changing states
+with empty ValueFormula, including Mana Infusion count 0..7 and Spirit Boost
+count 0..4. Passive icon updates do not cover their full resolved descriptions.
+
+Confirmed generic parameter conventions from native code:
+- n normally comes from count.
+- dam comes from extraDict.ExcessiveDam.
+- lvl prefers extraDict.SrcLV, otherwise dispatches to game source-level lookups.
+- cdrate and other named extra fields are supplied from state extra data.
+- Armed Caster SID 1668 is explicitly special-cased: n = held weapon CrazyEff.
+- Description selection, formula ranges, client states, relic special handling,
+  and Elite Sniper branches are additional context, not all identical formatting.
+
+The live Spirit Boost example has SrcLV=200: 'lvl' must not be blindly treated
+as a conventional upgrade level. Weapon Fodder uses ST39904_DamRatio directly,
+showing why copying game-defined fields is better than a per-scroll key list.
+These are input observations; their predicted outputs have not all been checked
+against displayed tooltips.
+
+The game's static stateParamDict is shared and incrementally overwritten.
+Snapshot it at the evaluator's call boundary, not later or after another effect.
+UpdateDescObj also writes UI objects; calling it on the live HUD as a hidden
+polling shortcut is not an acceptable default. It would risk visible changes,
+wrong context and shared-state contamination. A shadow UI object would require
+separate lifecycle/side-effect validation and is not the preferred first option.
+
+Recommended implementation sequence
+===================================
+A. One comprehensive diagnostic build, production totals unchanged.
+
+Add independently configurable observation groups with explicit install status,
+invocation counts, filtered counts, copied-record counts, errors and drops.
+Coverage counters must advance even if a hook cannot emit a useful value, so
+'no events', 'filtered events', and 'unsupported data' remain distinguishable.
+
+Group 1: property/state ingestion and client modifier notifications.
+  - PropObject.UpdatePropValue postfix: record object/key/type and mark dirty.
+  - NewObjectCache/ItemPropCache update boundaries: retain network provenance.
+  - ClientPrepData.ClientAddPrepDate: copy modifier args; observe clear/removal.
+  - State lifecycle plus RefreshExtraInfo: primitive event snapshots.
+  - Active-season item attribute refresh: source revision and bounded fields.
+  - Deferred effective getter reads and one guarded baseline inventory of all
+    property keys/types on player, owned companion, weapon and active perform.
+    Record unsupported schema instead of silently skipping forecast types.
+
+Group 2: natural calculation results.
+  - CalculatePropCacheAddition and the two typed AddBulletChange* overloads.
+  - CRuleAction.BulletChangeCBSetSkillSnapshot boundary for final correlation.
+  - CFormula.RunFormula with bounded expression/result and source context.
+  - Evaluate.OperateWithParam and EvaluateInfixExpression, scoped to known
+    status/cooldown contexts; pair inputs and result from the same invocation.
+  - S9 evaluator under its owning update context when that season is active.
+  - Existing final tooltip observers remain the human-visible comparison oracle.
+
+Use nested per-invocation context with exception-safe cleanup; a mutable global
+'current effect' is not sufficient for nested or concurrent calls. Do not assume
+the currently hovered SID identifies non-hover GetValue or gameplay evaluations.
+Context-free evaluations can be logged as unattributed, never assigned by guess.
+
+Prefer non-generic hook boundaries first. Generated generic getters share code,
+can be inlined, and require explicit interop compatibility verification. If
+passive getter hooks are viable, compare them with deferred reads; avoid blanket
+patching every property access on every object.
+
+B. Measure coverage with representative changes, not hand-entered formulas.
+
+For each transition capture state event -> applied property -> action snapshot
+-> evaluator/tooltip, noting which links exist and latency to each observation.
+Use existing effects when available:
+  Armed Caster: weapon swap changes CritX without requiring a count change.
+  Mana Infusion: stacks grow, are consumed, and next-primary scope expires.
+  Spirit Boost: count + SrcLV + extra data, not just a stack multiplier.
+  Mega Summon: companion scope and simultaneous HP/range/final-damage effects.
+  Lightning/Corrosive Expert: accumulating elemental bonuses.
+  Lucky Magazine/Deft Hands: short-lived constant and nonnumeric effects.
+  Weapon Fodder: arbitrary named extra parameter.
+  Stored-damage effects: amount rather than a percentage.
+  One forecast-backed weapon property: compare stored, client-adjusted getter,
+    and actual in-game behavior/display before assigning it a product label.
+
+Collect the no-hover interval first. Hover after the event/action to validate,
+not to make the observation path appear complete. Include effect removal,
+weapon swap, companion death/recreation and a scene transition. Observations
+from one Nona run cannot establish all-hero/all-season coverage.
+
+C. Promote the best source per quantity.
+
+Prefer an identified effective property read; otherwise use an applicable
+completed action snapshot with 'last observed' semantics; otherwise a resolved
+tooltip value with freshness/context attached. These channels are alternatives,
+not terms to add together. Preserve partial/unknown instead of inventing zero.
+
+An effect change or relevant weapon/source change invalidates an older value.
+An unchanged number is not proof that it is still current. Store run epoch,
+object generation, state revision, source scope and observation time. Display
+'last observed' or pending when appropriate. Eventually consistent does not
+mean displaying an old next-shot buff as currently active after consumption.
+
+An observed combined property can drive a headline without attributing its
+components. Keep contributor descriptions separate until source attribution is
+verified. Additive, final/multiplicative, companion-only, next-skill, target-only,
+and stored-damage quantities must remain separate.
+
+D. Use game evaluation only for measured gaps.
+
+If passive coverage is insufficient, call the game's pure expression evaluator
+with a fresh parameter snapshot sourced from the state data and verified game
+getters. Reuse game source-level lookup and supplied formula/range data where
+safe. This is a generic adapter to game data, not a catalog of hand-authored
+scroll formulas. Special variable producers such as Armed Caster remain explicit
+exceptions unless a more general game API is discovered during observation.
+
+Do not mutate stateParamDict, replay gameplay rules, force random checks, or call
+CalculatePropCacheAddition to obtain a read-only answer. Unsupported formatter
+branches remain unresolved until validated; do not guess their semantics.
+
+Engineering and validation gates
+================================
+- Hook callbacks copy bounded primitive data only; no file I/O, whole-object
+  reflection, unbounded collections, or background native object reads.
+- Preserve a bounded queue with overflow counters. A dropped event invalidates
+  affected coverage until a baseline resync; it is not evidence of no bonus.
+- Coalesce deferred property reads per object/key after update batches settle.
+  Initial target: next safe frame or a short (~100 ms) batch, not polling every
+  formula every frame. Measure latency and cost before promising a threshold.
+- Record observed values before coalescing if needed to detect transient buffs.
+  Cooperative time budgets do not cap the cost of one native call; retain hard
+  record/entry limits and measure worst cases.
+- Respect loading/cursor/native-read guards; hooks may copy their own arguments
+  during pauses, but traversals wait. Epoch changes discard stale queued work.
+- Observe only local player/owned companion/owned weapon contexts; verify owners
+  through existing server ownership logic, not appearance or matching SID.
+- Managed tests: ordering, merging partial extra patches, stale invalidation,
+  nested contexts, epoch changes, consumption/removal, units, source precedence,
+  payload limits, dropped-event recovery, and no duplicate totals.
+- Compile and validate native installation per hook; unit tests cannot verify
+  Harmony delivery, IL2CPP inlining, thread behavior, or game-native lifetime.
+- Runtime acceptance: repeated matching transitions across representative cases,
+  no unexplained mismatches, no capture loss in the validation intervals, and
+  measured acceptable overhead. If a source remains silent without hover, mark
+  that family unsupported rather than repeatedly asking for more hovers.
+
+Damage-counter investigation remains separate
+=============================================
+The same run's scoreboard reports continue to show a discrepancy (e.g. reported
+1,267,653 versus captured 1,210,741, gap 56,912 at 23:16:10 UTC, no pending damage
+at that comparison). Effect-value observation does not repair that discrepancy.
+Keep scoreboard versus damage-event diagnostics independent and avoid assuming
+the gap identifies a missing companion multiplier or event family.
+
+Outcome of this investigation
+=============================
+There is a substantially better next step than a hand-built effect engine:
+observe applied properties, client adjustment boundaries, and completed action
+calculations together, using tooltip calculations as validation. This maximizes
+reuse of the game and fits eventual consistency. A complete passive aggregate
+for every effect is still unproven and cannot be established by static inspection
+alone. The planned build is designed to answer that coverage question in one
+coherent experiment, with a game-evaluator fallback only for demonstrated gaps.

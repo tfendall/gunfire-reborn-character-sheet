@@ -50,3 +50,16 @@ Without a suitable original metadata backup, click **Verify game files through S
 Inactive generated caches, logs, settings, and recovery backups are preserved. They are not active mods after the loader is removed. Saves and translation packs are never included in removal. Unexpected files are not deleted. To remove a different loader version, follow its own manual uninstall instructions.
 
 The installer stores records/backups under `%LOCALAPPDATA%/GunfireCharacterSheet/installs`, keyed by the selected game folder. Keep the extracted installer for uninstall and repair. It does not register a Windows Apps entry or install a background service.
+
+
+## Optional research diagnostics
+
+Normal play needs no diagnostic settings. Authoritative damage totals, seasonal orb attribution,
+and effective bonuses remain active with research disabled.
+
+To investigate a problem, close the game and edit
+`BepInEx/config/local.gunfire.statsdiagnostic.cfg`. Set `EnableResearch = true`
+under `[Diagnostics]`, then select the observers you need. See `DEBUGGING.txt`
+in the download for the switches and storage limits. Set `EnableResearch = false`
+and restart to return to normal operation. Existing observer settings from earlier
+builds cannot enable research while this master switch is false.

@@ -28,9 +28,10 @@ internal static class CrashDiagnostics
     internal static void Reading(string source)
     {
         latest = source;
+        CombatCallbackJournal.Phase("READ "+source);
         TraceStore.Write("checkpoint", "READ " + source, true);
     }
-    internal static void ReadDone(string source) => TraceStore.Write("checkpoint", "DONE " + source, true);
+    internal static void ReadDone(string source) { CombatCallbackJournal.Phase("DONE "+source); TraceStore.Write("checkpoint", "DONE " + source, true); }
     internal static void Error(string phase, Exception error)
     {
         try

@@ -1,5 +1,30 @@
 static void Check(bool condition, string test) { if (!condition) throw new Exception(test); Console.WriteLine("PASS " + test); }
 DamageCaptureTests.Run(Check);
+var tooltipBuffer=new TooltipObservationBuffer();
+tooltipBuffer.Add("GetValue",10,132,1668,"count=0","200%");
+tooltipBuffer.Add("GetValue",10,132,1668,"count=0","200%");
+var tooltipSamples=tooltipBuffer.Drain();
+Check(tooltipSamples.Length==2 && tooltipSamples[0].Sid==1668 && tooltipSamples[0].Result=="200%" && tooltipSamples[1].Sequence>tooltipSamples[0].Sequence,"tooltip observations preserve repeated calls and effect identity");
+tooltipBuffer.Add("test",10,1,2,new string('i',3000),new string('r',5000));
+var clippedTooltip=tooltipBuffer.Drain().Single();
+Check(clippedTooltip.Truncated && clippedTooltip.Input.Length==2048 && clippedTooltip.Result.Length==4096,"tooltip payloads are bounded and explicitly marked truncated");
+for(int i=0;i<257;i++)tooltipBuffer.Add("test",10,1,2,"","");
+Check(tooltipBuffer.Drops==1 && tooltipBuffer.Drain().Length==16,"tooltip queue and per-frame work remain bounded with visible drops");
+var scoreboardSample=new ScoreboardSample(1,"test",10,1,745325,92095,707358,0,true,true,new[]{new ScoreboardCell(1,2,123)});
+ScoreboardDiagnosticModel.Add(scoreboardSample);ScoreboardDiagnosticModel.Add(scoreboardSample);
+var scoreboardReports=ScoreboardDiagnosticModel.Drain(10,1);
+Check(scoreboardReports.Length==2 && scoreboardReports[0].Reported-scoreboardReports[0].CapturedAtReceipt==37967,
+    "scoreboard diagnostics preserve repeated reports and the observed gap without accumulating totals");
+ScoreboardDiagnosticModel.Add(scoreboardSample);ScoreboardDiagnosticModel.Add(scoreboardSample with {Player=11});
+Check(ScoreboardDiagnosticModel.Drain(10,2).Length==0,"scoreboard reports cannot cross player/reset boundaries");
+Check(!ScoreboardDiagnosticModel.Add(scoreboardSample with {Reported=double.NaN}),"invalid scoreboard values are rejected");
+for(int i=0;i<129;i++)ScoreboardDiagnosticModel.Add(scoreboardSample);
+Check(ScoreboardDiagnosticModel.Drops==1,"scoreboard diagnostic queue remains bounded and reports overflow");
+for(int i=0;i<8;i++)ScoreboardDiagnosticModel.Drain(10,1);
+Check(StatusProbeSelection.Next(new[]{8,3,12},3)==8 && StatusProbeSelection.Next(new[]{8,3,12},12)==3,
+    "status diagnostic rotates deterministically across instance IDs");
+Check(StatusProbeSelection.Next(new[]{8,12},3)==8 && StatusProbeSelection.Next(new[]{1,8,12},12)==1 && StatusProbeSelection.Next(Array.Empty<int>(),12)==0,
+    "status diagnostic selection survives removed, inserted and absent states");
 var normal = new CombatWindow();
 for (int i = 0; i < 100; i++) normal.Add(new(i, 221, i < 60 ? 1 : 2, i < 20));
 var a = normal.Measure(100);
@@ -236,6 +261,30 @@ GemArtworkIds.Observe("S8GemItemDict=playerScoped:[31:S8GemUnit{id=31,sid=2071,q
 Check(GemArtworkIds.TryGet(51771,out var gemItemId) && gemItemId==2071 && GemArtworkIds.TryGet(51758,out gemItemId) && gemItemId==999, "gem artwork resolves captured item identity rather than passing ability IDs or assuming an offset");
 GemArtworkIds.Observe("[budget limit]");
 Check(!GemArtworkIds.TryGet(51800,out _) && GemArtworkIds.TryGet(51771,out _), "incomplete inventory cannot invent gem artwork identities");
+InvestigationTests.Run(Check);
 var groupedBuild=BuildSheetModel.Stable(Array.Empty<BuildContribution>()).GroupBy(BuildSheetModel.Family).OrderBy(group=>BuildSheetModel.FamilyRank(group.Key)).ToArray();
 Check(groupedBuild.Select(group=>group.Key).SequenceEqual(new[]{"WEAPON & LUCK","SKILLS","ELEMENTS","ATTACK & MOVEMENT"}) && groupedBuild.Sum(group=>group.Count())==BuildSheetModel.MainMetrics.Length, "compact build families keep every main modifier visible in a stable order");
 Check(groupedBuild.Single(group=>group.Key=="SKILLS").Count()==4 && groupedBuild.Single(group=>group.Key=="ELEMENTS").Any(row=>row.Key=="Explosion DMG buffs"), "compact group counts preserve skill scopes and explosion damage");
+
+var budgetDir=Path.Combine(Path.GetTempPath(),"gunfire-trace-budget-"+Guid.NewGuid());
+Directory.CreateDirectory(budgetDir);
+try
+{
+    using(var limited=new TraceSink(Path.Combine(budgetDir,"trace-budget"),10,20))
+    {
+        limited.TryWrite("1234");limited.TryWrite("5678");limited.TryWrite("overflow");
+        Check(SpinWait.SpinUntil(()=>limited.CapacityReached,5000),"trace session byte cap stops logging");
+    }
+    Check(File.ReadAllText(Path.Combine(budgetDir,"trace-budget.jsonl"))=="1234\n5678\n",
+        "byte cap preserves complete records without exceeding the limit");
+    File.WriteAllText(Path.Combine(budgetDir,"trace-old.jsonl"),"preserve-existing-evidence");
+    using(var full=new TraceSink(Path.Combine(budgetDir,"trace-full"),10,20))
+    {
+        Check(SpinWait.SpinUntil(()=>full.CapacityReached,5000),"directory cap applies across prior sessions");
+        Check(!full.TryWrite("extra"),"capacity exhaustion rejects further producer writes");
+    }
+    Check(!File.Exists(Path.Combine(budgetDir,"trace-full.jsonl")) &&
+        File.ReadAllText(Path.Combine(budgetDir,"trace-old.jsonl"))=="preserve-existing-evidence",
+        "full trace directory preserves previous evidence without creating new files");
+}
+finally {Directory.Delete(budgetDir,true);}

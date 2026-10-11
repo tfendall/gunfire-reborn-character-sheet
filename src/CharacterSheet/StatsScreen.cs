@@ -14,7 +14,8 @@ internal static class StatsScreen
     private static List<BuildContribution>? sheetSource;
     private static SheetBonus[] sheet = Array.Empty<SheetBonus>();
     private static GUIStyle? rowButton, valueStyle, detailValue, buildLabel, buildValue, badgeValue;
-    private static GUIStyle? label, heading, number, small, button;
+    private static GUIStyle? label, heading, number, small, button, damageNote;
+    private const string UnattributedNote = "Can include damage to immortal or invincible enemies, or slight rounding errors";
     private static Vector2 scroll;
     private static Rect panelBounds;
     private static float measuredBuildHeight = 360;
@@ -134,6 +135,8 @@ internal static class StatsScreen
             heading = new GUIStyle(label) { fontStyle = FontStyle.Normal };
             number = new GUIStyle(heading);
             small = new GUIStyle(label);
+            damageNote = new GUIStyle(label) { wordWrap=true };
+            damageNote.normal.textColor = new Color(0.62f,0.68f,0.66f,1);
             button = new GUIStyle();
             StatsTheme.Apply(label, heading, number, small, button);
             rowButton = new GUIStyle();
@@ -164,6 +167,7 @@ internal static class StatsScreen
         }
         label.fontSize = (int)(17 * s); heading!.fontSize = (int)(18 * s);
         number!.fontSize = (int)(30 * s); small!.fontSize = (int)(14 * s); button!.fontSize = (int)(13 * s);
+        damageNote!.fontSize = (int)(12 * s);
         valueStyle!.fontSize = (int)(20 * s);
         buildLabel!.fontSize=(int)(15*s);buildValue!.fontSize=(int)(17*s);
         badgeValue!.fontSize=(int)(12*s);
@@ -209,7 +213,7 @@ internal static class StatsScreen
                 { matrixView = false; scroll = Vector2.zero; }
                 if (matrixView)
                 {
-                    GUI.Label(new Rect(x+20*s,y+120*s,width-40*s,48*s),Compact(DamageCapture.Ledger.Total)+" DMG",number!);
+                    GUI.Label(new Rect(x+20*s,y+120*s,width-40*s,48*s),Compact(ScoreboardDiagnostic.DisplayLedger.Total)+" DMG",number!);
                     DrawMatrix(x,y+180*s,width,height-205*s,s);
                 }
                 else DrawBuild(x, y + 125 * s, width, height - 150 * s, s);
@@ -226,8 +230,10 @@ internal static class StatsScreen
     }
     private static void DrawBuild(float x, float y, float width, float height, float s)
     {
-        if (!ReferenceEquals(sheetSource, BuildBonuses.Rows))
-        { sheetSource = BuildBonuses.Rows; sheet = BuildSheetModel.Stable(sheetSource); }
+        sheetSource = EffectRefreshDiagnostic.ShowInBuild
+            ? EffectiveContributionMerge.Merge(BuildBonuses.Rows,EffectRefreshDiagnostic.View.Snapshot(),ModifierRuntime.Findings,EffectRefreshDiagnostic.Now)
+            : BuildBonuses.Rows;
+        sheet = BuildSheetModel.Stable(sheetSource);
         float contentWidth = width - 62 * s;
         // Lay out the same entries before painting, using actual wrapped text
         // heights. This keeps longer ability names/contributors from clipping.
@@ -374,12 +380,13 @@ internal static class StatsScreen
     private static float PanelWidth(float scale) => Math.Min(420 * scale, Screen.width * 0.215f);
     private static float MatrixHeight(float s) => measuredDamageHeight + 205*s;
     private static readonly Dictionary<string,Color> elementColors=new() {
+        ["Unknown"]=new Color(0.55f,0.55f,0.55f,1),
         ["Normal"]=new(0.77f,0.73f,0.62f,1),["Fire"]=new(0.94f,0.62f,0.42f,1),
         ["Lightning"]=new(0.60f,0.74f,0.87f,1),["Corrosion"]=new(0.67f,0.79f,0.45f,1),["Other"]=new(0.66f,0.63f,0.71f,1)
     };
     private static void DrawMatrix(float x,float y,float width,float height,float s)
     {
-        var sources=DamageTabModel.Create(DamageCapture.Ledger);
+        var sources=DamageTabModel.Create(ScoreboardDiagnostic.DisplayLedger);
         float cw=width-62*s, inset=14*s, inner=cw-2*inset;
         // Keep the single-line legend pinned below the scrolling sources.
         legendLabel!.fontSize=Math.Max(1,(int)(11*s));
@@ -392,6 +399,8 @@ internal static class StatsScreen
             float header=Math.Max(42*s,label!.CalcHeight(new GUIContent(source.Name),cw-164*s)+8*s);
             float end=cursor+header+38*s;
             if(expandedSources.Contains(source.Name))end+=(32+source.Elements.Length*38+(source.Name is "Other damage" or "Damage over time" ? 32+source.Contributions.Length*28 : 0))*s;
+            if(expandedSources.Contains(source.Name) && source.Name=="Unattributed damage")
+                end+=damageNote!.CalcHeight(new GUIContent(UnattributedNote),inner)+12*s;
             end+=22*s;sections.Add((source,cursor,header,end));cursor=end;
         }
         if(sources.Length==0)cursor+=40*s;
@@ -439,6 +448,12 @@ internal static class StatsScreen
                         GUI.Label(new Rect(inset,detailY,inner-85*s,26*s),contribution.Name,small!);
                         GUI.Label(new Rect(cw-inset-80*s,detailY,80*s,26*s),MatrixValue(contribution.Amount),damageAmount!);detailY+=28*s;
                     }
+                }
+                if(expandedSources.Contains(source.Name) && source.Name=="Unattributed damage")
+                {
+                    float noteY=barY+(68+source.Elements.Length*38)*s;
+                    float noteHeight=damageNote!.CalcHeight(new GUIContent(UnattributedNote),inner);
+                    GUI.Label(new Rect(inset,noteY,inner,noteHeight),UnattributedNote,damageNote);
                 }
                 Fill(new Rect(0,section.End-8*s,cw,s),new Color(0.28f,0.26f,0.18f,1));
             }
