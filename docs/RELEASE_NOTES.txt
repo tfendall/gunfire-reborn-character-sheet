@@ -1,27 +1,27 @@
-Gunfire Character Sheet 0.13.37 (experimental)
+Character Sheet 0.13.38 (experimental)
 
-Damage totals now follow the game's scoreboard, with any remaining difference
-shown explicitly as Unattributed damage. Its expanded explanation reads:
-"Can include damage to immortal or invincible enemies, or slight rounding errors"
+This release moves Character Sheet to .NET 10 and the verified custom BepInEx loader with HarmonyX 2.16.1. It supplies a prebuilt loader overlay and corresponding source so players can install the upgraded dependencies without compiling them. Gameplay on the upgraded stack was confirmed on October 13, 2026.
 
-POLE MONARCH Orb damage uses the game's seasonal breakdown instead of a
-reproduced formula. Both orb definitions are recognized, including when an orb
-is acquired after a zero-total reset. Missing per-hit attribution remains
-visible; a residual is not automatically assigned to the orb or to rounding.
+Downloads
 
-Effective bonuses resolved through the game's logic populate the existing
-contributor rows and cumulative values. Unresolved contributions remain unknown.
+- Setup ZIP: guided mod install/update/uninstall and prerequisite checks.
+- ModOnly ZIP: manual mod installation; choose this or Setup.
+- LoaderOverlay ZIP: prebuilt custom loader and changed dependencies, applied over official BepInEx Unity.IL2CPP Windows x64 build 788. Required when upgrading from the old stock-loader/.NET-6 stack.
+- LoaderSource ZIP: complete modified BepInEx source without game/Unity reference binaries, plus the patch, pinned revision, build recipe, license notices, and dependency provenance.
+- SHA256SUMS.txt: checksums for all four ZIPs.
 
-Research diagnostics are disabled by default. The observers remain available
-through EnableResearch; see DEBUGGING.txt. Normal operation keeps authoritative
-totals and live effective bonuses without research trace output. Optional trace
-logging has per-session and directory storage limits.
+Follow the [installation and download guide](https://github.com/tfendall/gunfire-reborn-character-sheet/blob/main/docs/INSTALL.md). If the custom loader and .NET 10.0.12 runtime are already installed and verified, update only the mod. Otherwise install the base BepInEx package, apply LoaderOverlay, and install the exact runtime before installing the mod. EmberCloak and restored metadata remain separate Nexus downloads and are not redistributed.
 
-Known limitation: observed Immortal reaction packets do not provide numeric
-per-hit damage credit. The scoreboard total includes that credit, but its source
-can remain Unattributed.
+Verified baseline
 
-The preceding 0.13.36 gameplay session loaded successfully with research off and
-no logged errors or exceptions. This release updates the explanation and release
-documentation. Automated build, regression, installer and package checks are
-performed before publication. Frame-time overhead has not been benchmarked.
+Windows Steam x64, game build 25361614; custom BepInEx 6.0.0-gunfire-net10.1 based on upstream 788 / 5b766a3; HarmonyX 2.16.1; MonoMod RuntimeDetour 25.3.4, Utils 25.0.12 and Core 1.3.4; embedded .NET runtime 10.0.12; Il2CppInterop 1.5.3; Doorstop 4.5.0; EmberCloak distribution 1.2.2; matching restored metadata.
+
+The loader variant is our modification, not an official upstream BepInEx release. Its source and licenses accompany the separate loader downloads. Setup and ModOnly contain no loader, runtime, game binaries, or Nexus prerequisites.
+
+Validation and limitations
+
+Managed calculation tests, installer checks, standalone loader compatibility checks, bounded Steam startup tests, and native IL2CPP getter patch/invocation/unpatch checks passed. The mod builds without warnings or errors. The user reports normal gameplay with the updated dependencies.
+
+The existing scoreboard-based totals, POLE MONARCH Orb seasonal attribution, effective build bonuses, and research-off default remain in place. This dependency release does not change their calculations.
+
+Compatibility with other game builds, operating systems, and other plugins is unverified. Modifier coverage and per-hit attribution remain partial; some artwork uses fallbacks. Earlier native crash reports do not establish that every crash is fixed, and long-session stability/frame-time overhead have not been systematically measured.

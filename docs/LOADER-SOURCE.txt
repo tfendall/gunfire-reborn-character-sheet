@@ -1,0 +1,19 @@
+Corresponding source for the Character Sheet BepInEx .NET 10 loader overlay
+
+The BepInEx-src directory contains the modified BepInEx source at upstream
+commit 5b766a3b7f6c164d4798924a93f3acf4db769d06, with the supplied patch applied.
+Unity reference DLLs and other binaries are intentionally excluded.
+
+To reproduce the loader, install Git and .NET SDK 10.0.401 and run:
+  powershell -ExecutionPolicy Bypass -File scripts/Build-Loader.ps1
+
+The script fetches the pinned upstream checkout (including compile references),
+applies dependencies/bepinex-net10.patch, restores NuGet dependencies, and builds
+artifacts/custom-loader. It verifies the official build-788 archive before
+extracting the unchanged Dobby provider. No game installation is needed to build
+the loader. Network access is required for source and dependency downloads.
+
+build-info.json records the source revision, patch SHA-256 and binary hashes.
+third-party-packages.json records dependency versions and NuGet package hashes.
+dependencies contains LGPL-2.1 and dependency license notices.
+The loader remains dynamically replaceable; our mod ZIPs contain no loader DLLs.

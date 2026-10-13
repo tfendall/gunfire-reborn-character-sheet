@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$GameDir,[string]$Dotnet='dotnet')
+param([Parameter(Mandatory=$true)][string]$GameDir,[string]$Dotnet=$(if(Test-Path "$env:USERPROFILE\.dotnet\dotnet.exe"){"$env:USERPROFILE\.dotnet\dotnet.exe"}else{'dotnet'}))
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $output=Join-Path $root 'artifacts\mod'

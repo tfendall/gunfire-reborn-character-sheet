@@ -17,7 +17,7 @@ Get-ChildItem -LiteralPath (Join-Path $root 'installer') -File | Copy-Item -Dest
 Copy-Item -LiteralPath (Join-Path $root 'docs\INSTALL.md') -Destination "$guided\INSTALL.md"
 Copy-Item -LiteralPath (Join-Path $root 'docs\INSTALL.md') -Destination "$manual\INSTALL.md"
 foreach($destination in @($guided,$manual)){
-    foreach($doc in @('THIRD_PARTY.md','DEBUGGING.txt','RELEASE_NOTES.txt')){
+    foreach($doc in @('THIRD_PARTY.md','DEPENDENCIES.md','DEBUGGING.txt','RELEASE_NOTES.md','RELEASE_NOTES.txt')){
         Copy-Item -LiteralPath (Join-Path $root ('docs\'+$doc)) -Destination $destination
     }
 }

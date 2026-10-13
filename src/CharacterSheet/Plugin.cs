@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [BepInPlugin("local.gunfire.statsdiagnostic", "Gunfire Character Sheet", Plugin.ModVersion)]
 public class Plugin : BasePlugin
 {
-    internal const string ModVersion = "0.13.37";
+    internal const string ModVersion = "0.13.38";
     public override void Load()
     {
         Panel.Logger = Log;

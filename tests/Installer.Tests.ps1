@@ -5,11 +5,13 @@ function Assert-GameClosed {}
 function Check([bool]$Condition,[string]$Name){if(!$Condition){throw "FAIL $Name"};Write-Output "PASS $Name"}
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('CharacterSheetTests-'+[guid]::NewGuid())
 $root=Join-Path $fixture 'game with spaces';$package=Join-Path $fixture 'package';$stateBase=Join-Path $fixture 'state'
-New-Item -ItemType Directory -Force -Path $root,"$package\payload","$root\BepInEx\plugins\EmberCloak","$root\Gunfire Reborn_Data\il2cpp_data\Metadata" | Out-Null
+New-Item -ItemType Directory -Force -Path $root,"$package\payload","$root\dotnet","$root\BepInEx\plugins\EmberCloak","$root\Gunfire Reborn_Data\il2cpp_data\Metadata" | Out-Null
 try {
     Set-Content -LiteralPath "$root\Gunfire Reborn.exe" -Value 'fake executable'
     Set-Content -LiteralPath "$root\GameAssembly.dll" -Value 'fake game'
     Set-Content -LiteralPath "$root\winhttp.dll" -Value 'fake loader'
+    Set-Content -LiteralPath "$root\dotnet\coreclr.dll" -Value 'fake runtime'
+    Set-Content -LiteralPath "$root\dotnet\System.Private.CoreLib.dll" -Value 'fake runtime library'
     Set-Content -LiteralPath "$root\BepInEx\plugins\EmberCloak\EmberCloak.dll" -Value 'fake dependency'
     Set-Content -LiteralPath "$root\Gunfire Reborn_Data\il2cpp_data\Metadata\global-metadata.dat" -Value 'restored'
     Set-Content -LiteralPath "$package\payload\mod.dll" -Value 'fake mod'
@@ -17,10 +19,16 @@ try {
     foreach($entry in @(@('bepinex','winhttp.dll'),@('embercloak','BepInEx/plugins/EmberCloak/EmberCloak.dll'),@('metadata','Gunfire Reborn_Data/il2cpp_data/Metadata/global-metadata.dat'))){
         $components+=@{id=$entry[0];name=$entry[0];version='test';url='https://example.invalid';instructions='fixture';required=@($entry[1]);files=@(@{path=$entry[1];sha256=(Get-Sha256 (Join-Path $root $entry[1]))})}
     }
+    $runtimePaths=@('dotnet/coreclr.dll','dotnet/System.Private.CoreLib.dll')
+    $components+=@{id='dotnet';name='.NET game runtime';version='test';url='https://example.invalid';instructions='fixture';required=$runtimePaths;files=@($runtimePaths | ForEach-Object {@{path=$_;sha256=(Get-Sha256 (Join-Path $root $_))}})}
     $compat=@{game=@{gameAssemblySha256=(Get-Sha256 "$root\GameAssembly.dll")};components=$components}
     $compat | ConvertTo-Json -Depth 8 | Set-Content "$package\compatibility.json"
     @{version='test';payload='payload/mod.dll';sha256=(Get-Sha256 "$package\payload\mod.dll")} | ConvertTo-Json | Set-Content "$package\release.json"
     Check (@(Get-PrerequisiteStatus $root $compat | Where-Object Status -ne 'Verified').Count -eq 0) 'verified prerequisites detected by hashes'
+    Remove-Item -LiteralPath "$root\dotnet\System.Private.CoreLib.dll"
+    $blocked=$false;try{Install-CharacterSheet $root $package -StateBase $stateBase -AllowUnverified | Out-Null}catch{$blocked=$true}
+    Check ($blocked -and !(Test-Path "$root\BepInEx\plugins\GunfireStatsDiagnostic\GunfireStatsDiagnostic.dll")) 'incomplete separate runtime blocks install even with the unverified-version override'
+    Set-Content -LiteralPath "$root\dotnet\System.Private.CoreLib.dll" -Value 'fake runtime library'
     $escaped=$false;try{Get-SafePath $root '../outside.dll' | Out-Null}catch{$escaped=$true};Check $escaped 'manifest traversal rejected'
     Install-CharacterSheet $root $package -StateBase $stateBase | Out-Null
     $mod="$root\BepInEx\plugins\GunfireStatsDiagnostic\GunfireStatsDiagnostic.dll"

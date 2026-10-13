@@ -1,11 +1,27 @@
-# Experimental Character Sheet release
+# Character Sheet 0.13.38 (experimental)
 
-Windows Steam x64; tested with game build 25361614, BepInEx 6.0.0-be.697, EmberCloak distribution 1.2.2, and matching restored metadata.
+This release moves Character Sheet to .NET 10 and the verified custom BepInEx loader with HarmonyX 2.16.1. It supplies a prebuilt loader overlay and corresponding source so players can install the upgraded dependencies without compiling them. Gameplay on the upgraded stack was confirmed on October 13, 2026.
 
-Includes cumulative damage by source/element, observed Lucky Shot Chance, grouped build modifiers, and contributor details on the C screen.
+## Downloads
 
-0.13.13 adds damage credit for attackers whose server `PlayerProp.Owner` matches the local player. These hits appear under **Companion damage**, retain their element breakdown, and do not affect player weapon/skill Lucky Shot estimates. This addresses the player-ID-only filter that excluded separately attributed companion attacks. Nona/Iron Wing validation in-game is still required; this does not establish parity with the game's scoreboard for every damage source. Previously missed damage cannot be recovered.
+- **Setup ZIP**: guided mod install/update/uninstall and prerequisite checks.
+- **ModOnly ZIP**: manual mod installation; choose this or Setup.
+- **LoaderOverlay ZIP**: prebuilt custom loader and changed dependencies, applied over official BepInEx Unity.IL2CPP Windows x64 build 788. Required when upgrading from the old stock-loader/.NET-6 stack.
+- **LoaderSource ZIP**: complete modified BepInEx source without game/Unity reference binaries, plus the patch, pinned revision, build recipe, license notices, and dependency provenance.
+- **SHA256SUMS.txt**: checksums for all four ZIPs.
 
-Download the guided Setup ZIP for prerequisite detection and install/uninstall, or the ModOnly ZIP for manual installation. Prerequisites are separate official downloads; links and steps are in INSTALL.md. Neither package bundles game files or third-party prerequisite binaries.
+Follow the [installation and download guide](https://github.com/tfendall/gunfire-reborn-character-sheet/blob/main/docs/INSTALL.md). If the custom loader and .NET 10.0.12 runtime are already installed and verified, update only the mod. Otherwise install the base BepInEx package, apply LoaderOverlay, and install the exact runtime before installing the mod. EmberCloak and restored metadata remain separate Nexus downloads and are not redistributed.
 
-Known limitations: intermittent native startup crashes remain under investigation; modifier coverage and damage attribution are partial; some item artwork may still use fallbacks. Observed Lucky Shot Chance uses a rolling damage-event window. Soul Pendant damage is not yet a separate headline source. Compatibility with other game/dependency versions is unverified.
+## Verified baseline
+
+Windows Steam x64, game build 25361614; custom BepInEx `6.0.0-gunfire-net10.1` based on upstream 788 / `5b766a3`; HarmonyX 2.16.1; MonoMod RuntimeDetour 25.3.4, Utils 25.0.12 and Core 1.3.4; embedded .NET runtime 10.0.12; Il2CppInterop 1.5.3; Doorstop 4.5.0; EmberCloak distribution 1.2.2; matching restored metadata.
+
+The loader variant is our modification, not an official upstream BepInEx release. Its source and licenses accompany the separate loader downloads. Setup and ModOnly contain no loader, runtime, game binaries, or Nexus prerequisites.
+
+## Validation and limitations
+
+Managed calculation tests, installer checks, standalone loader compatibility checks, bounded Steam startup tests, and native IL2CPP getter patch/invocation/unpatch checks passed. The mod builds without warnings or errors. The user reports normal gameplay with the updated dependencies.
+
+The existing scoreboard-based totals, POLE MONARCH Orb seasonal attribution, effective build bonuses, and research-off default remain in place. This dependency release does not change their calculations.
+
+Compatibility with other game builds, operating systems, and other plugins is unverified. Modifier coverage and per-hit attribution remain partial; some artwork uses fallbacks. Earlier native crash reports do not establish that every crash is fixed, and long-session stability/frame-time overhead have not been systematically measured.

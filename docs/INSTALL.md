@@ -1,6 +1,18 @@
 # Install Character Sheet
 
-Download from the [GitHub Releases page](https://github.com/tfendall/gunfire-reborn-character-sheet/releases). Under **Assets**, choose the **Setup ZIP** for guided installation or the **ModOnly ZIP** for manual installation. The repository is private, so sign in with a GitHub account that has repository access.
+Download [Character Sheet 0.13.38](https://github.com/tfendall/gunfire-reborn-character-sheet/releases/tag/v0.13.38). The repository and downloads are public. Expand **Assets** and choose:
+
+| Asset | Purpose |
+|---|---|
+| `CharacterSheet-0.13.38-Setup.zip` | Guided mod installation, prerequisite checks, and uninstall. |
+| `CharacterSheet-0.13.38-ModOnly.zip` | Manual mod installation; choose this or Setup. |
+| `CharacterSheet-0.13.38-LoaderOverlay.zip` | Prebuilt custom loader and updated dependencies; required if you do not already have the verified custom loader. |
+| `CharacterSheet-0.13.38-LoaderSource.zip` | Corresponding loader source, build recipe, provenance, and license notices; useful for rebuilding or inspecting it. |
+| `SHA256SUMS.txt` | Checksums for all four ZIPs. |
+
+GitHub's automatically generated **Source code** archives are source checkouts, not ready-to-install mod packages.
+
+If your custom loader and .NET 10 runtime already match the verified baseline, update only the mod using Setup or ModOnly. When upgrading from stock BepInEx or .NET 6, close the game and back up `BepInEx/core`, `dotnet`, and your mod DLL before installing the new prerequisites.
 
 Experimental Windows Steam x64 release. The tested game build is 25361614; compatibility with other builds is not established. Intermittent native startup crashes remain under investigation.
 
@@ -20,15 +32,20 @@ The first BepInEx launch may take longer while interop assemblies are generated.
 
 Install all prerequisites before launching with the mod:
 
-| Component | Tested version | Official download and destination |
+| Component | Verified version | Official download and destination |
 |---|---|---|
-| BepInEx | Unity.IL2CPP-win-x64, 6.0.0-be.697, commit 5362580 | [BepInEx builds](https://builds.bepinex.dev/projects/bepinex_be). Extract the complete archive into the game root, including `dotnet`, `winhttp.dll`, `doorstop_config.ini`, and `BepInEx`. |
+| BepInEx | Custom `6.0.0-gunfire-net10.1`, based on build 788 / 5b766a3 | Install the complete official [Unity.IL2CPP Windows x64 build 788](https://builds.bepinex.dev/projects/bepinex_be), then extract **LoaderOverlay.zip** from [release 0.13.38](https://github.com/tfendall/gunfire-reborn-character-sheet/releases/tag/v0.13.38) into the game root and overwrite matching files. It supplies the modified loader, HarmonyX 2.16.1, and compatible dependencies. Stock build 788 alone is incompatible. |
+| .NET game runtime | 10.0.12 | Download the official [.NET Runtime 10.0.12 Windows x64 binaries ZIP](https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-win-x64.zip), extract outside the game folder, and copy the **contents** of `shared/Microsoft.NETCore.App/10.0.12` over the game's `dotnet` folder. Overwrite matching files; preserve the additional BepInEx logging and dependency-injection DLLs. Installing a system runtime alone does not update this embedded runtime. |
 | Restored metadata | Steam build 25361614 | [Global Metadata Restored](https://www.nexusmods.com/gunfirereborn/mods/4). Back up the original `Gunfire Reborn_Data/il2cpp_data/Metadata/global-metadata.dat` outside the game folder, then replace it with the restored file for your exact game build. |
 | EmberCloak | Distribution 1.2.2 | [EmberCloak](https://www.nexusmods.com/gunfirereborn/mods/8). Put both `EmberCloak.dll` and `EmberCloak.Native.dll` in `BepInEx/plugins/EmberCloak`. |
 
 EmberCloak's assembly/plugin version can differ from its download version. The installer uses known file hashes to distinguish the tested package. It also checks the game assembly and restored metadata, not just filenames.
 
-Nexus downloads require the author's download flow and possibly a Nexus account. Prerequisites are not included in our release assets. See [BepInEx's IL2CPP instructions](https://docs.bepinex.dev/master/articles/user_guide/installation/unity_il2cpp.html).
+Before the first launch with build 788, download the [official Unity 2018.4.36 library ZIP](https://unity.bepinex.dev/libraries/2018.4.36.zip) and place the unopened ZIP at `BepInEx/unity-libs/2018.4.36.zip`. The loader uses this archive to regenerate interop assemblies. Without the cached archive, its HTTP download crashed in `WinHttpOpen` on the verified installation. Launch through Steam after installing every prerequisite.
+
+No SDK or compiler is needed for installation. The modified loader is a separate download from our release, with its corresponding source supplied separately. Startup and native patch/unpatch checks passed, and gameplay on the upgraded dependencies was confirmed by the user on October 13. This is still an experimental release; long-session stability has not been established. See [dependency compatibility notes](DEPENDENCIES.md).
+
+Nexus downloads require the author's download flow and possibly a Nexus account. EmberCloak and restored metadata are not included in our release assets. The base BepInEx package, runtime, and Unity library archive come from upstream. See [BepInEx's IL2CPP instructions](https://docs.bepinex.dev/master/articles/user_guide/installation/unity_il2cpp.html).
 
 ## Manual mod-only install
 

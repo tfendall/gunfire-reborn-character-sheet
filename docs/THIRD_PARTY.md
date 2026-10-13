@@ -1,8 +1,9 @@
 # Third-party components
 
-- [BepInEx](https://github.com/BepInEx/BepInEx) and its dependencies provide the mod runtime. Refer to their upstream licenses and installation documentation. This release does not bundle them.
+- [BepInEx](https://github.com/BepInEx/BepInEx) and its dependencies provide the mod runtime. Our .NET 10 variant applies `dependencies/bepinex-net10.patch` to upstream commit `5b766a3b7f6c164d4798924a93f3acf4db769d06`. This modification uses BepInEx's LGPL-2.1 license, preserved in `dependencies/BepInEx-LICENSE.txt`. Setup and ModOnly ZIPs do not bundle the loader. The separate LoaderOverlay ZIP contains its changed binaries and dependency notices; LoaderSource ZIP provides the corresponding modified source, patch, license notices, package provenance, and build recipe. The loader can be replaced independently of the mod.
+- [Microsoft .NET](https://dotnet.microsoft.com/) supplies the separately installed game runtime and developer SDK. This release does not bundle either. Refer to the upstream license and notices included in each download.
 - [EmberCloak](https://www.nexusmods.com/gunfirereborn/mods/8), by Zeprus, is a separately installed prerequisite. Its Nexus page prohibits uploading its files to other sites. No EmberCloak binary is in this repository or release.
 - [Global Metadata Restored](https://www.nexusmods.com/gunfirereborn/mods/4), by Zeprus, is a separately installed prerequisite matched to the game build. Its Nexus page prohibits uploading its files to other sites. No restored metadata is in this repository or release.
 - Gunfire Reborn is owned by its respective rights holders. Game artwork is loaded from the user's installed game at runtime; artwork, game binaries, and generated interop reference assemblies are not bundled.
 
-This private repository does not grant a public redistribution license for the mod source. Choose and document a project license before making a public source release.
+The repository is public. Public visibility does not by itself grant a redistribution license for the Character Sheet mod source; the upstream and modified-loader license notices above apply to their respective components.

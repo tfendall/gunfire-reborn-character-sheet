@@ -1,0 +1,26 @@
+Character Sheet .NET 10 loader overlay (6.0.0-gunfire-net10.1)
+
+This is a modified BepInEx build, not an official upstream release.
+No SDK or compiler is required to install this overlay.
+
+Close Gunfire Reborn and back up the existing BepInEx/core and dotnet folders.
+1. Install the complete official BepInEx Unity.IL2CPP Windows x64 build 788:
+   https://builds.bepinex.dev/projects/bepinex_be
+2. Extract this LoaderOverlay ZIP into the game root and overwrite matching files.
+   Its BepInEx/core files provide the patched loader and updated dependencies.
+3. Download .NET Runtime 10.0.12 Windows x64 binaries (ZIP):
+   https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-win-x64.zip
+   Extract outside the game. Copy the CONTENTS of shared/Microsoft.NETCore.App/10.0.12
+   into the game's dotnet folder, overwriting matching files. Keep the BepInEx
+   Microsoft.Extensions.* and Microsoft.Bcl.AsyncInterfaces.dll support files.
+4. Cache the official Unity 2018.4.36 ZIP, without extracting it, at
+   BepInEx/unity-libs/2018.4.36.zip:
+   https://unity.bepinex.dev/libraries/2018.4.36.zip
+5. Install EmberCloak 1.2.2, restored metadata for Steam build 25361614, and
+   Character Sheet using INSTALL.md from the Setup or ModOnly ZIP.
+6. Launch through Steam. First-launch interop generation can take several minutes.
+
+Existing users with the verified custom .NET 10 stack only need to update the mod.
+Keep LoaderSource.zip alongside this overlay for the corresponding source,
+license notices, pinned upstream revision, patch, and build recipe.
+License notices and provenance are in BepInEx/loader-licenses.

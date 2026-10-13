@@ -1,0 +1,376 @@
+diff --git a/BepInEx.Core/BepInEx.Core.csproj b/BepInEx.Core/BepInEx.Core.csproj
+index c2873d3..2e3bad9 100644
+--- a/BepInEx.Core/BepInEx.Core.csproj
++++ b/BepInEx.Core/BepInEx.Core.csproj
+@@ -1,16 +1,16 @@
+-﻿<Project Sdk="Microsoft.NET.Sdk">
++<Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+         <Description>BepInEx Core library</Description>
+-        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
++        <TargetFramework>net10.0</TargetFramework>
+         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+         <!-- Force nuget assembly output on netstandard2.0 -->
+         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+     </PropertyGroup>
+     <ItemGroup>
+         <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All"/>
+-        <PackageReference Include="HarmonyX" Version="2.10.2" />
++        <PackageReference Include="HarmonyX" Version="2.16.1" />
+         <PackageReference Include="SemanticVersioning" Version="2.0.2"/>
+-        <PackageReference Include="MonoMod.Utils" Version="22.7.31.1"/>
++        <PackageReference Include="MonoMod.Utils" Version="25.0.12"/>
+     </ItemGroup>
+     <ItemGroup>
+         <Compile Remove="Contract\IPlugin.cs"/>
+@@ -27,3 +27,4 @@
+         <Delete Files="@(FilesToDelete)"/>
+     </Target>
+ </Project>
++
+diff --git a/BepInEx.Core/Console/Unix/UnixStreamHelper.cs b/BepInEx.Core/Console/Unix/UnixStreamHelper.cs
+index f308fb8..3ada11d 100644
+--- a/BepInEx.Core/Console/Unix/UnixStreamHelper.cs
++++ b/BepInEx.Core/Console/Unix/UnixStreamHelper.cs
+@@ -1,7 +1,7 @@
+-﻿using System;
++using System;
+ using System.Collections.Generic;
+ using System.IO;
+-using MonoMod.Utils;
++using System.Runtime.InteropServices;
+ 
+ namespace BepInEx.Unix;
+ 
+@@ -20,41 +20,28 @@ internal static class UnixStreamHelper
+     public delegate int fwriteDelegate(IntPtr ptr, IntPtr size, IntPtr nmemb, IntPtr stream);
+ 
+     public delegate int isattyDelegate(int fd);
+-
+-    [DynDllImport("libc")]
+     public static dupDelegate dup;
+-
+-    [DynDllImport("libc")]
+     public static fdopenDelegate fdopen;
+-
+-    [DynDllImport("libc")]
+     public static freadDelegate fread;
+-
+-    [DynDllImport("libc")]
+     public static fwriteDelegate fwrite;
+-
+-    [DynDllImport("libc")]
+     public static fcloseDelegate fclose;
+-
+-    [DynDllImport("libc")]
+     public static fflushDelegate fflush;
+-
+-    [DynDllImport("libc")]
+     public static isattyDelegate isatty;
+ 
+     static UnixStreamHelper()
+     {
+-        var libcMapping = new Dictionary<string, List<DynDllMapping>>
+-        {
+-            ["libc"] = new()
+-            {
+-                "libc.so.6",               // Ubuntu glibc
+-                "libc",                    // Linux glibc
+-                "/usr/lib/libSystem.dylib" // OSX POSIX
+-            }
+-        };
+-
+-        typeof(UnixStreamHelper).ResolveDynDllImports(libcMapping);
++        nint libc = 0;
++        foreach (var name in new[] { "libc.so.6", "libc", "/usr/lib/libSystem.dylib" })
++            if (NativeLibrary.TryLoad(name, out libc)) break;
++        if (libc == 0) throw new DllNotFoundException("No supported libc library was found.");
++        // Native library remains loaded for the lifetime of these delegates.
++        dup = Marshal.GetDelegateForFunctionPointer<dupDelegate>(NativeLibrary.GetExport(libc, "dup"));
++        fdopen = Marshal.GetDelegateForFunctionPointer<fdopenDelegate>(NativeLibrary.GetExport(libc, "fdopen"));
++        fread = Marshal.GetDelegateForFunctionPointer<freadDelegate>(NativeLibrary.GetExport(libc, "fread"));
++        fwrite = Marshal.GetDelegateForFunctionPointer<fwriteDelegate>(NativeLibrary.GetExport(libc, "fwrite"));
++        fclose = Marshal.GetDelegateForFunctionPointer<fcloseDelegate>(NativeLibrary.GetExport(libc, "fclose"));
++        fflush = Marshal.GetDelegateForFunctionPointer<fflushDelegate>(NativeLibrary.GetExport(libc, "fflush"));
++        isatty = Marshal.GetDelegateForFunctionPointer<isattyDelegate>(NativeLibrary.GetExport(libc, "isatty"));
+     }
+ 
+     public static Stream CreateDuplicateStream(int fileDescriptor)
+diff --git a/BepInEx.Core/Console/Windows/ConsoleWindow.cs b/BepInEx.Core/Console/Windows/ConsoleWindow.cs
+index dbf1855..8a13377 100644
+--- a/BepInEx.Core/Console/Windows/ConsoleWindow.cs
++++ b/BepInEx.Core/Console/Windows/ConsoleWindow.cs
+@@ -1,4 +1,4 @@
+-﻿// --------------------------------------------------
++// --------------------------------------------------
+ // UnityInjector - ConsoleWindow.cs
+ // Copyright (c) Usagirei 2015 - 2015
+ // --------------------------------------------------
+@@ -125,10 +125,10 @@ internal class ConsoleWindow
+ 
+         // Some games may ship user32.dll with some methods missing. As such, we load the DLL explicitly from system folder
+         var user32Dll = LoadLibraryEx("user32.dll", IntPtr.Zero, LOAD_LIBRARY_SEARCH_SYSTEM32);
+-        setForeground = GetProcAddress(user32Dll, "SetForegroundWindow").AsDelegate<SetForegroundWindowDelegate>();
+-        getForeground = GetProcAddress(user32Dll, "GetForegroundWindow").AsDelegate<GetForegroundWindowDelegate>();
+-        getSystemMenu = GetProcAddress(user32Dll, "GetSystemMenu").AsDelegate<GetSystemMenuDelegate>();
+-        deleteMenu = GetProcAddress(user32Dll, "DeleteMenu").AsDelegate<DeleteMenuDelegate>();
++        setForeground = Marshal.GetDelegateForFunctionPointer<SetForegroundWindowDelegate>(GetProcAddress(user32Dll, "SetForegroundWindow"));
++        getForeground = Marshal.GetDelegateForFunctionPointer<GetForegroundWindowDelegate>(GetProcAddress(user32Dll, "GetForegroundWindow"));
++        getSystemMenu = Marshal.GetDelegateForFunctionPointer<GetSystemMenuDelegate>(GetProcAddress(user32Dll, "GetSystemMenu"));
++        deleteMenu = Marshal.GetDelegateForFunctionPointer<DeleteMenuDelegate>(GetProcAddress(user32Dll, "DeleteMenu"));
+     }
+ 
+     [DllImport("kernel32.dll", SetLastError = true)]
+@@ -181,3 +181,4 @@ internal class ConsoleWindow
+     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+     private delegate bool DeleteMenuDelegate(IntPtr hMenu, uint uPosition, uint uFlags);
+ }
++
+diff --git a/BepInEx.Core/Console/Windows/WindowsConsoleDriver.cs b/BepInEx.Core/Console/Windows/WindowsConsoleDriver.cs
+index 802cd52..b1b6996 100644
+--- a/BepInEx.Core/Console/Windows/WindowsConsoleDriver.cs
++++ b/BepInEx.Core/Console/Windows/WindowsConsoleDriver.cs
+@@ -144,7 +144,7 @@ internal class WindowsConsoleDriver : IConsoleDriver
+ 
+     private static Stream OpenFileStream(IntPtr handle)
+     {
+-        if (ReflectionHelper.IsCore)
++        if (System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET"))
+         {
+             var windowsConsoleStreamType = Type.GetType("System.ConsolePal+WindowsConsoleStream, System.Console", true);
+             var constructor = AccessTools.Constructor(windowsConsoleStreamType,
+@@ -178,3 +178,4 @@ internal class WindowsConsoleDriver : IConsoleDriver
+         }
+     }
+ }
++
+diff --git a/BepInEx.Core/PlatformHelper.cs b/BepInEx.Core/PlatformHelper.cs
+new file mode 100644
+index 0000000..60876d3
+--- /dev/null
++++ b/BepInEx.Core/PlatformHelper.cs
+@@ -0,0 +1,30 @@
++using System;
++using System.Runtime.InteropServices;
++
++namespace BepInEx;
++
++// Local compatibility facade for BepInEx's platform checks. MonoMod 25 uses
++// PlatformDetection and no longer exports its former PlatformHelper API.
++[Flags]
++public enum Platform
++{
++    Unknown = 0, Windows = 1, Unix = 2, Linux = Unix | 4,
++    MacOS = Unix | 8, Android = Linux | 16, iOS = MacOS | 32,
++    Wine = Windows | 64, Bits64 = 128, ARM = 256
++}
++
++public static class PlatformHelper
++{
++    public static Platform Current { get; set; } = Detect();
++    public static bool Is(Platform platform) => (Current & platform) == platform;
++    public static string LibrarySuffix => Is(Platform.Windows) ? "dll" : Is(Platform.MacOS) ? "dylib" : "so";
++
++    private static Platform Detect()
++    {
++        var platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Platform.Windows
++            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? Platform.MacOS : Platform.Linux;
++        if (Environment.Is64BitOperatingSystem) platform |= Platform.Bits64;
++        if (RuntimeInformation.ProcessArchitecture is Architecture.Arm or Architecture.Arm64) platform |= Platform.ARM;
++        return platform;
++    }
++}
+diff --git a/BepInEx.Preloader.Core/BepInEx.Preloader.Core.csproj b/BepInEx.Preloader.Core/BepInEx.Preloader.Core.csproj
+index 6002a99..befe42d 100644
+--- a/BepInEx.Preloader.Core/BepInEx.Preloader.Core.csproj
++++ b/BepInEx.Preloader.Core/BepInEx.Preloader.Core.csproj
+@@ -1,15 +1,16 @@
+-﻿<Project Sdk="Microsoft.NET.Sdk">
++<Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+         <Description>Core classes and utilities for BepInEx Preloader</Description>
+-        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
++        <TargetFramework>net10.0</TargetFramework>
+     </PropertyGroup>
+     <ItemGroup>
+         <ProjectReference Include="..\BepInEx.Core\BepInEx.Core.csproj"/>
+     </ItemGroup>
+     <ItemGroup>
+         <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All"/>
+-        <PackageReference Include="HarmonyX" Version="2.10.2" />
+-        <PackageReference Include="MonoMod.RuntimeDetour" Version="22.7.31.1"/>
+-        <PackageReference Include="MonoMod.Utils" Version="22.7.31.1"/>
++        <PackageReference Include="HarmonyX" Version="2.16.1" />
++        <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.4"/>
++        <PackageReference Include="MonoMod.Utils" Version="25.0.12"/>
+     </ItemGroup>
+ </Project>
++
+diff --git a/BepInEx.Preloader.Core/PlatformUtils.cs b/BepInEx.Preloader.Core/PlatformUtils.cs
+index 917a7a8..8f95368 100644
+--- a/BepInEx.Preloader.Core/PlatformUtils.cs
++++ b/BepInEx.Preloader.Core/PlatformUtils.cs
+@@ -126,9 +126,9 @@ internal static class PlatformUtils
+         }
+         else
+         {
+-            // Detect ARM based on PE info or uname.
+-            typeof(object).Module.GetPEKind(out var peKind, out var machine);
+-            if (machine == (ImageFileMachine) 0x01C4 /* ARM, .NET Framework 4.5 */)
++            // CoreCLR's native core library is not a managed PE assembly.
++            // Use the supported runtime API rather than inspecting its PE kind.
++            if (RuntimeInformation.ProcessArchitecture is Architecture.Arm or Architecture.Arm64)
+                 current |= Platform.ARM;
+         }
+ 
+diff --git a/Runtimes/Unity/BepInEx.Unity.Common/BepInEx.Unity.Common.csproj b/Runtimes/Unity/BepInEx.Unity.Common/BepInEx.Unity.Common.csproj
+index 32c0935..8f56e2e 100644
+--- a/Runtimes/Unity/BepInEx.Unity.Common/BepInEx.Unity.Common.csproj
++++ b/Runtimes/Unity/BepInEx.Unity.Common/BepInEx.Unity.Common.csproj
+@@ -2,13 +2,14 @@
+ 
+     <PropertyGroup>
+         <Description>BepInEx common code for Unity games</Description>
+-        <TargetFrameworks>net35;netstandard2.0</TargetFrameworks>
++        <TargetFramework>net10.0</TargetFramework>
+     </PropertyGroup>
+ 
+     <ItemGroup>
+         <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
+         <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all"/>
+-        <PackageReference Include="MonoMod.Utils" Version="22.7.31.1"/>
++        <PackageReference Include="MonoMod.Utils" Version="25.0.12"/>
+     </ItemGroup>
+ 
+-</Project>
++<ItemGroup><ProjectReference Include="..\..\..\BepInEx.Core\BepInEx.Core.csproj" /></ItemGroup></Project>
++
+diff --git a/Runtimes/Unity/BepInEx.Unity.IL2CPP/BepInEx.Unity.IL2CPP.csproj b/Runtimes/Unity/BepInEx.Unity.IL2CPP/BepInEx.Unity.IL2CPP.csproj
+index 1fcd6e4..d95a746 100644
+--- a/Runtimes/Unity/BepInEx.Unity.IL2CPP/BepInEx.Unity.IL2CPP.csproj
++++ b/Runtimes/Unity/BepInEx.Unity.IL2CPP/BepInEx.Unity.IL2CPP.csproj
+@@ -1,7 +1,7 @@
+-﻿<Project Sdk="Microsoft.NET.Sdk">
++<Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+         <Description>BepInEx support library for Il2Cpp games</Description>
+-        <TargetFramework>net6.0</TargetFramework>
++        <TargetFramework>net10.0</TargetFramework>
+         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+         <OutputPath>$(BuildDir)/Unity.IL2CPP</OutputPath>
+@@ -13,7 +13,7 @@
+         <ProjectReference Include="..\BepInEx.Unity.Common\BepInEx.Unity.Common.csproj" />
+     </ItemGroup>
+     <ItemGroup>
+-        <PackageReference Include="HarmonyX" Version="2.10.2" />
++        <PackageReference Include="HarmonyX" Version="2.16.1" />
+         <PackageReference Include="Iced" Version="1.21.0" />
+         <PackageReference Include="Il2CppInterop.Generator" Version="1.5.3" />
+         <PackageReference Include="Il2CppInterop.HarmonySupport" Version="1.5.3" />
+@@ -21,7 +21,7 @@
+         <PackageReference Include="Il2CppInterop.Runtime" Version="1.5.3" />
+         <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" IncludeAssets="compile" PrivateAssets="all" />
+         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" IncludeAssets="compile" PrivateAssets="all" />
+-        <PackageReference Include="MonoMod.RuntimeDetour" Version="22.7.31.1" />
++        <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.4" />
+         <PackageReference Include="Samboy063.Cpp2IL.Core" Version="2022.1.0-development.1452" />
+     </ItemGroup>
+     <ItemGroup>
+@@ -51,3 +51,4 @@
+     </Target>
+ 
+ </Project>
++
+diff --git a/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/BaseNativeDetour.cs b/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/BaseNativeDetour.cs
+index a8b0ae9..db09ae2 100644
+--- a/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/BaseNativeDetour.cs
++++ b/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/BaseNativeDetour.cs
+@@ -63,7 +63,7 @@ internal abstract class BaseNativeDetour<T> : INativeDetour where T : BaseNative
+         if (TrampolineMethod == null)
+         {
+             Prepare();
+-            TrampolineMethod = DetourHelper.GenerateNativeProxy(TrampolinePtr, signature);
++            TrampolineMethod = NativeTrampoline.Generate(TrampolinePtr, signature);
+         }
+ 
+         return TrampolineMethod;
+@@ -96,3 +96,4 @@ internal abstract class BaseNativeDetour<T> : INativeDetour where T : BaseNative
+ 
+     protected abstract void FreeImpl();
+ }
++
+diff --git a/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/INativeDetour.cs b/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/INativeDetour.cs
+index 61ec72c..8c455f7 100644
+--- a/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/INativeDetour.cs
++++ b/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/INativeDetour.cs
+@@ -1,4 +1,4 @@
+-﻿using System;
++using System;
+ using System.Collections.Generic;
+ using System.Reflection;
+ using System.Runtime.InteropServices;
+@@ -11,8 +11,15 @@ using MonoMod.Utils;
+ 
+ namespace BepInEx.Unity.IL2CPP.Hook;
+ 
+-public interface INativeDetour : IDetour
++public interface INativeDetour : IDisposable
+ {
++    bool IsValid { get; }
++    bool IsApplied { get; }
++    void Apply();
++    void Undo();
++    void Free();
++    MethodBase GenerateTrampoline(MethodBase signature = null);
++    T GenerateTrampoline<T>() where T : Delegate;
+     private static readonly ConfigEntry<DetourProvider> DetourProviderType = ConfigFile.CoreConfig.Bind(
+          "Detours", "DetourProviderType",
+          DetourProvider.Default,
+@@ -42,7 +49,7 @@ public interface INativeDetour : IDetour
+             DetourProvider.Funchook => new FunchookDetour(original, target),
+             _                       => CreateDefault(original, target)
+         };
+-        if (!ReflectionHelper.IsMono)
++        if (Type.GetType("Mono.Runtime") == null)
+         {
+             return new CacheDetourWrapper(detour, target);
+         }
+@@ -148,3 +155,5 @@ public interface INativeDetour : IDetour
+         Funchook
+     }
+ }
++
++
+diff --git a/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/NativeTrampoline.cs b/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/NativeTrampoline.cs
+new file mode 100644
+index 0000000..1a2e443
+--- /dev/null
++++ b/Runtimes/Unity/BepInEx.Unity.IL2CPP/Hook/NativeTrampoline.cs
+@@ -0,0 +1,26 @@
++using System;
++using System.Linq;
++using System.Reflection;
++using System.Reflection.Emit;
++using System.Runtime.InteropServices;
++
++namespace BepInEx.Unity.IL2CPP.Hook;
++
++internal static class NativeTrampoline
++{
++    public static MethodInfo Generate(nint pointer, MethodBase signature)
++    {
++        ArgumentNullException.ThrowIfNull(signature);
++        var result = signature is MethodInfo method ? method.ReturnType : typeof(void);
++        var parameters = signature.GetParameters().Select(p => p.ParameterType).ToArray();
++        var proxy = new DynamicMethod("BepInExNativeTrampoline", result, parameters, typeof(NativeTrampoline).Module, true);
++        var il = proxy.GetILGenerator();
++        for (var index = 0; index < parameters.Length; index++) il.Emit(OpCodes.Ldarg, index);
++        il.Emit(OpCodes.Ldc_I8, (long)pointer);
++        il.Emit(OpCodes.Conv_I);
++        il.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, result, parameters);
++        il.Emit(OpCodes.Ret);
++        return proxy;
++    }
++}
++
