@@ -13,6 +13,11 @@ internal static class StatsScreen
     private static readonly Dictionary<string,string> chosenTiles = new();
     private static List<BuildContribution>? sheetSource;
     private static SheetBonus[] sheet = Array.Empty<SheetBonus>();
+    private static BonusWindowResult[]? buildHistory;
+    private static CoverageFinding[]? buildFindings;
+    private static int buildWeaponSid;
+    private static readonly Dictionary<string,ContributorTile[]> buildTiles=new();
+    private static float nextBuildProfile;
     private static GUIStyle? rowButton, valueStyle, detailValue, buildLabel, buildValue, badgeValue;
     private static GUIStyle? label, heading, number, small, button, damageNote;
     private const string UnattributedNote = "Can include damage to immortal or invincible enemies, or slight rounding errors";
@@ -230,16 +235,29 @@ internal static class StatsScreen
     }
     private static void DrawBuild(float x, float y, float width, float height, float s)
     {
-        sheetSource = EffectRefreshDiagnostic.ShowInBuild
-            ? EffectiveContributionMerge.Merge(BuildBonuses.Rows,EffectRefreshDiagnostic.View.Snapshot(),ModifierRuntime.Findings,EffectRefreshDiagnostic.Now)
-            : BuildBonuses.Rows;
-        sheet = BuildSheetModel.Stable(sheetSource);
+        // GUI can run several times per frame. Rebuild managed contributor data
+        // only when the sampled build/history changes, not for every GUI event.
+        if(!ReferenceEquals(sheetSource,BonusTracking.Rows) || !ReferenceEquals(buildHistory,BonusTracking.Averages) ||
+            !ReferenceEquals(buildFindings,ModifierRuntime.Findings) || buildWeaponSid!=Panel.CurrentWeaponSid)
+        {
+            long started=System.Diagnostics.Stopwatch.GetTimestamp();
+            sheetSource=BonusTracking.Rows;buildHistory=BonusTracking.Averages;buildFindings=ModifierRuntime.Findings;buildWeaponSid=Panel.CurrentWeaponSid;
+            sheet=BuildSheetModel.Stable(sheetSource);buildTiles.Clear();
+            foreach(var row in sheet.Append(new SheetBonus("lsc","","","",Array.Empty<BuildContribution>())))
+                buildTiles[row.Key]=ContributorTiles.Create(row.Key,row.Contributors,BonusTracking.Luck,buildFindings,buildWeaponSid)
+                    .Select(tile=>EffectAveragePresentation.Apply(row.Key,tile,buildHistory)).ToArray();
+            if(Time.unscaledTime>=nextBuildProfile)
+            {
+                nextBuildProfile=Time.unscaledTime+5;
+                TraceStore.Write("build-menu-cache-profile",$"rows={sheet.Length} owners={buildFindings.Length} tiles={buildTiles.Values.Sum(t=>t.Length)} rebuildMs={(System.Diagnostics.Stopwatch.GetTimestamp()-started)*1000.0/System.Diagnostics.Stopwatch.Frequency:0.###}");
+            }
+        }
         float contentWidth = width - 62 * s;
         // Lay out the same entries before painting, using actual wrapped text
         // heights. This keeps longer ability names/contributors from clipping.
         var blocks = new List<(float Y, float H, string Name, string Value, string Key, bool Section, bool Detail)>();
         float cursor = 0;
-        var tileSets=new Dictionary<string,ContributorTile[]>();
+        var tileSets=buildTiles;
         void Section(string text)
         {
             if(blocks.Count>0)cursor+=6*s;
@@ -250,15 +268,20 @@ internal static class StatsScreen
             float h = Math.Max(22 * s, small!.CalcHeight(new GUIContent(text), contentWidth - 2*PanelSpacing.ContentInset*s - PanelSpacing.NumberWidth*s) + PanelSpacing.DetailGap*s);
             blocks.Add((cursor,h,text,value,"",false,true)); cursor += h;
         }
+        void PowerText(string text)
+        {
+            float h=small!.CalcHeight(new GUIContent(text),contentWidth-2*PanelSpacing.ContentInset*s)+16*s;
+            blocks.Add((cursor,h,text,"","body",false,true));cursor+=h;
+        }
         void Bonus(string key, string text, string value, BuildContribution[] items)
         {
-            var contributors=ContributorTiles.Create(key,items,BaseLsc.Rows,ModifierRuntime.Findings,Panel.CurrentWeaponSid);
-            tileSets[key]=contributors;
+            var contributors=tileSets[key];
             float nameWidth=contentWidth-(PanelSpacing.RowInset+PanelSpacing.BuildValueWidth+PanelSpacing.BadgeGap+PanelSpacing.BadgeWidth+12+28)*s;
             float h=Math.Max(32*s,buildLabel!.CalcHeight(new GUIContent(text),nameWidth)+8*s);
             blocks.Add((cursor,h,text,value,key,false,false)); cursor += h;
             if (!expandedBonuses.Contains(key)) return;
             int backgroundIndex=blocks.Count;float expandedTop=cursor;blocks.Add((cursor,0,"","","expanded",false,true));cursor+=PanelSpacing.ExpandedPadding*s;
+            if(HeadlineBonuses.Supports(key))PowerText(HeadlineBonuses.Detail(key,BonusTracking.Averages));
             if(key=="lsc")
             {
                 const string note="Rolling average of recent weapon hits. Changes as damage is dealt.";
@@ -287,6 +310,7 @@ internal static class StatsScreen
             blocks[backgroundIndex]=(expandedTop,cursor-expandedTop,"","","expanded",false,true);
             cursor+=PanelSpacing.RowGap*s;
         }
+        PowerText("Bonuses: 30s combat average · * partial");
         var displayRows=new[]{new SheetBonus("lsc","WEAPON & LUCK","Lucky Shot Chance",Percent(DamageCapture.WeaponLsc),Array.Empty<BuildContribution>())}.Concat(sheet);
         foreach(var family in displayRows.GroupBy(BuildSheetModel.Family).OrderBy(group=>BuildSheetModel.FamilyRank(group.Key)).ThenBy(group=>group.Key))
         {
@@ -294,7 +318,7 @@ internal static class StatsScreen
             foreach(var bonus in family)
                 if(bonus.Key=="Critical Multiplier (multiplier)")
                     Bonus(bonus.Key,"CritX",BuildBonuses.CritX.HasValue ? BuildBonuses.CritX.Value.ToString("0.##")+"×" : "—",bonus.Contributors);
-                else Bonus(bonus.Key,bonus.Name,bonus.Value,bonus.Contributors);
+                else Bonus(bonus.Key,BuildSheetModel.RowLabel(bonus),HeadlineBonuses.Supports(bonus.Key) ? HeadlineBonuses.Value(bonus.Key,BonusTracking.Averages) : bonus.Value,bonus.Contributors);
         }
         measuredBuildHeight = cursor;
         scroll = GUI.BeginScrollView(new Rect(x + 20 * s,y,width - 40 * s,height),scroll,
@@ -399,6 +423,7 @@ internal static class StatsScreen
             float header=Math.Max(42*s,label!.CalcHeight(new GUIContent(source.Name),cw-164*s)+8*s);
             float end=cursor+header+38*s;
             if(expandedSources.Contains(source.Name))end+=(32+source.Elements.Length*38+(source.Name is "Other damage" or "Damage over time" ? 32+source.Contributions.Length*28 : 0))*s;
+            if(expandedSources.Contains(source.Name) && source.Name=="Weapon damage")end+=38*s;
             if(expandedSources.Contains(source.Name) && source.Name=="Unattributed damage")
                 end+=damageNote!.CalcHeight(new GUIContent(UnattributedNote),inner)+12*s;
             end+=22*s;sections.Add((source,cursor,header,end));cursor=end;
@@ -454,6 +479,12 @@ internal static class StatsScreen
                     float noteY=barY+(68+source.Elements.Length*38)*s;
                     float noteHeight=damageNote!.CalcHeight(new GUIContent(UnattributedNote),inner);
                     GUI.Label(new Rect(inset,noteY,inner,noteHeight),UnattributedNote,damageNote);
+                }
+                if(expandedSources.Contains(source.Name) && source.Name=="Weapon damage")
+                {
+                    float powerY=barY+(68+source.Elements.Length*38)*s;
+                    if(GUI.Button(new Rect(inset,powerY,inner,30*s),"Weapon bonus breakdown",button!) && Cursor.visible)
+                    {matrixView=false;expandedBonuses.Add("Weapon DMG buffs");scroll=Vector2.zero;}
                 }
                 Fill(new Rect(0,section.End-8*s,cw,s),new Color(0.28f,0.26f,0.18f,1));
             }

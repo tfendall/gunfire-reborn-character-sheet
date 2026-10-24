@@ -14,16 +14,17 @@ internal static class TraceStore
     private static ManualLogSource? log;
     private static readonly Dictionary<string,string> last = new();
     internal static string Latest = "No observed attack data yet. Open F8 and fire.";
-    internal static void Start(ManualLogSource logger)
+    internal static void Start(ManualLogSource logger,long sessionLimitBytes=64*1024*1024,long directoryLimitBytes=256*1024*1024)
     {
         log = logger;
         if(!Enabled)return;
         var dir = Path.Combine(Paths.BepInExRootPath, "StatsDiagnostic", "Research");
         var stem = Path.Combine(dir, "trace-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff"));
         var path = stem + ".jsonl";
-        sink = new TraceSink(stem);
+        sink = new TraceSink(stem,sessionLimitBytes,directoryLimitBytes);
         Marker("session-start");
         log.LogInfo("Trace file: " + path);
+        log.LogInfo($"Research trace limits: session {sessionLimitBytes/(1024*1024)} MiB; directory {directoryLimitBytes/(1024*1024)} MiB.");
     }
     internal static void Marker(string marker) => Write("marker", marker, true);
     internal static string Health => !Enabled ? "Research diagnostics off" : sink == null ? "Trace writer unavailable" : sink.CapacityReached ? "Trace storage limit reached" : sink.Error.Length > 0 ? "Trace writer failed: " + sink.Error : "Trace queue drops: " + sink.Drops;

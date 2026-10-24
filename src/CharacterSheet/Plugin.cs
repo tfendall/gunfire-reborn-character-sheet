@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [BepInPlugin("local.gunfire.statsdiagnostic", "Gunfire Character Sheet", Plugin.ModVersion)]
 public class Plugin : BasePlugin
 {
-    internal const string ModVersion = "0.13.38";
+    internal const string ModVersion = "0.13.49";
     public override void Load()
     {
         Panel.Logger = Log;
@@ -17,7 +17,11 @@ public class Plugin : BasePlugin
         TraceStore.Enabled = Config.Bind("Diagnostics", "EnableResearch", false,
             "Master switch for research observers and trace files. Existing per-observer settings are ignored while false. Restart required.").Value;
         bool Research(string key,bool fallback,string description) => Config.Bind("Diagnostics",key,fallback,description).Value && TraceStore.Enabled;
-        TraceStore.Start(Log);
+        int sessionMiB=Config.Bind("Diagnostics","TraceSessionLimitMiB",64,
+            "Maximum research trace size per launch in MiB (1-16384). Development suggestion: 2048. Restart required.").Value;
+        int directoryMiB=Config.Bind("Diagnostics","TraceDirectoryLimitMiB",256,
+            "Maximum existing plus new research traces in MiB (1-65536). Development suggestion: 8192. Old evidence is preserved; restart required.").Value;
+        TraceStore.Start(Log,Math.Clamp(sessionMiB,1,16384)*1024L*1024,Math.Clamp(directoryMiB,1,65536)*1024L*1024);
         CrashDiagnostics.Install();
         Panel.AutoCapture = Config.Bind("Stats", "AutomaticCapture", true, "Capture stats during runs without showing the F8 diagnostic panel. Stats appear on the C/package screen.").Value;
         EffectRefreshDiagnostic.ShowInBuild = Config.Bind("Stats", "ShowEffectiveBonuses", true, "Use fresh game-evaluated bonuses for uniquely matched contributors and compatible additive totals in the Build tab.").Value;
@@ -118,6 +122,8 @@ public class Panel : MonoBehaviour
         catch (Exception ex) { CrashDiagnostics.Error("effective-diagnostic", ex); }
         try { EffectRefreshDiagnostic.Tick(); }
         catch (Exception ex) { CrashDiagnostics.Error("effect-refresh", ex); }
+        try { BonusTracking.Tick(); }
+        catch (Exception ex) { CrashDiagnostics.Error("bonus-window", ex); }
         TickPlayer();
     }
     // Keep these native type dependencies behind a method boundary, not just

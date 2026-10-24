@@ -35,7 +35,10 @@ internal static class EffectExpression
                 if(!Regex.IsMatch(inner,@"^[A-Za-z_0-9+*/%.\s\-]+$"))throw new InvalidOperationException("unsupported-expression");
                 if(++calls>16)throw new InvalidOperationException("expression-count");
                 string result=evaluate("("+inner+")");
-                if(!double.TryParse(result,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out double number) || !double.IsFinite(number))
+                // Native results can carry percentage units; preserve them in the text.
+                string scalar=result.Trim();
+                if(scalar.EndsWith('%'))scalar=scalar[..^1];
+                if(!double.TryParse(scalar,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out double number) || !double.IsFinite(number))
                     throw new InvalidOperationException("non-numeric-result");
                 output.Append(result);i--;
             }

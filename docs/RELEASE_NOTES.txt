@@ -1,27 +1,32 @@
-Character Sheet 0.13.38 (experimental)
+# Character Sheet 0.13.49 (experimental)
 
-This release moves Character Sheet to .NET 10 and the verified custom BepInEx loader with HarmonyX 2.16.1. It supplies a prebuilt loader overlay and corresponding source so players can install the upgraded dependencies without compiling them. Gameplay on the upgraded stack was confirmed on October 13, 2026.
+Build bonuses now include combat-window averages and contributor breakdowns, with clearer treatment of observed values, retained bonuses, duplicate items and unresolved effects. This release includes the development work since 0.13.38.
 
-Downloads
+## Changes
 
-- Setup ZIP: guided mod install/update/uninstall and prerequisite checks.
-- ModOnly ZIP: manual mod installation; choose this or Setup.
-- LoaderOverlay ZIP: prebuilt custom loader and changed dependencies, applied over official BepInEx Unity.IL2CPP Windows x64 build 788. Required when upgrading from the old stock-loader/.NET-6 stack.
-- LoaderSource ZIP: complete modified BepInEx source without game/Unity reference binaries, plus the patch, pinned revision, build recipe, license notices, and dependency provenance.
-- SHA256SUMS.txt: checksums for all four ZIPs.
+- Show 30-second combat averages with observation coverage and known-subtotal indicators. Separate primary/secondary skill damage and base bonuses; normalize supported named hero abilities.
+- Replace catalogue amounts with fresh source-level contributions without counting duplicate copies twice. Preserve explicitly identified retained bonuses after equipment changes.
+- Clear learned inactive contributions only after complete status scans; keep incomplete, stale and ambiguous observations unresolved.
+- Capture Movement Speed Fodder's live bonus and map Elemental Cube's verified states to its owned scroll while keeping elements separate.
+- Recognize Resolute's unqualified damage-dealt bonus. Attribute the observed normal Convergent Paths skill branch, preserving its weapon penalty and skill bonus; overlapping branches and enhanced variants remain unresolved.
+- Keep Field Support unresolved instead of interpreting its unverified input as a zero bonus.
+- Cache build contributor data between sampled updates and bound named-ability text caching.
+- Add offline attribution coverage reports and 23 captured replay samples, with source file/line provenance and explicit limitations on historical matching.
 
-Follow the [installation and download guide](https://github.com/tfendall/gunfire-reborn-character-sheet/blob/main/docs/INSTALL.md). If the custom loader and .NET 10.0.12 runtime are already installed and verified, update only the mod. Otherwise install the base BepInEx package, apply LoaderOverlay, and install the exact runtime before installing the mod. EmberCloak and restored metadata remain separate Nexus downloads and are not redistributed.
+## Downloads
 
-Verified baseline
+- **Setup ZIP**: guided mod install/update/uninstall and prerequisite checks.
+- **ModOnly ZIP**: manual mod update; choose this or Setup.
+- **LoaderOverlay ZIP**: unchanged custom loader/dependency baseline, for installations that still need it.
+- **LoaderSource ZIP**: corresponding modified loader source, build recipe and license notices.
+- **SHA256SUMS.txt**: checksums for all four ZIPs.
 
-Windows Steam x64, game build 25361614; custom BepInEx 6.0.0-gunfire-net10.1 based on upstream 788 / 5b766a3; HarmonyX 2.16.1; MonoMod RuntimeDetour 25.3.4, Utils 25.0.12 and Core 1.3.4; embedded .NET runtime 10.0.12; Il2CppInterop 1.5.3; Doorstop 4.5.0; EmberCloak distribution 1.2.2; matching restored metadata.
+If the custom loader and .NET 10.0.12 runtime from 0.13.38 are already installed, update only the mod. Follow the included INSTALL.md for prerequisites. Game binaries, runtime, EmberCloak and restored metadata are not redistributed.
 
-The loader variant is our modification, not an official upstream BepInEx release. Its source and licenses accompany the separate loader downloads. Setup and ModOnly contain no loader, runtime, game binaries, or Nexus prerequisites.
+## Validation and limitations
 
-Validation and limitations
+Managed tests (including captured replay cases), extractor tests and installer tests pass. The mod compiles against the installed game with no warnings or errors. The loader baseline is unchanged from 0.13.38; its earlier startup/native-hook and gameplay validation does not establish fresh validation of this release.
 
-Managed calculation tests, installer checks, standalone loader compatibility checks, bounded Steam startup tests, and native IL2CPP getter patch/invocation/unpatch checks passed. The mod builds without warnings or errors. The user reports normal gameplay with the updated dependencies.
+The newest attribution fixes have not yet been validated in a new gameplay run. Modifier coverage remains partial. Replay tests validate interpretation of captured native answers, not native hook delivery or the game's arithmetic. Historical display matches do not establish exact timing, ownership or each item's share of final damage. Field Support, overlapping Convergent Paths branches and unverified scopes remain unresolved. Long-session stability and frame-time overhead are not fully characterized.
 
-The existing scoreboard-based totals, POLE MONARCH Orb seasonal attribution, effective build bonuses, and research-off default remain in place. This dependency release does not change their calculations.
-
-Compatibility with other game builds, operating systems, and other plugins is unverified. Modifier coverage and per-hit attribution remain partial; some artwork uses fallbacks. Earlier native crash reports do not establish that every crash is fixed, and long-session stability/frame-time overhead have not been systematically measured.
+Baseline: Windows Steam x64 game build 25361614; modified BepInEx 6.0.0-gunfire-net10.1 based on upstream 788; HarmonyX 2.16.1; embedded .NET 10.0.12. Other game builds and plugin combinations are unverified.

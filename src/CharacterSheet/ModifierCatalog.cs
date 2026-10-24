@@ -1,5 +1,9 @@
 // Generated typed modifier rules. Unresolved definitions are intentional coverage entries.
 internal static class ModifierCatalog {
+static ModifierCatalog()
+{
+    foreach(var key in Entries.Keys.ToArray())Entries[key]=NamedAbilityBonuses.Project(key.Source,Entries[key]);
+}
 internal static readonly Dictionary<(string Source,int Id,int Level),ModifierDefinition> Entries = new() {
 [("ascension",2025,1)] = new("Twin Gunner","While Dual-Wielding, +100% Weapon DMG, but +100% ammo consumption.",new ModifierRule[] {},"needs-state"),
 [("ascension",2025,2)] = new("Twin Gunner","While Dual-Wielding, +125% Weapon DMG, and there is a 50% chance to +100% ammo consumption.",new ModifierRule[] {},"needs-state"),

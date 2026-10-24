@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><None Update="Fixtures/attribution-20261017.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/CombatWindow.cs" Link="CombatWindow.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/TraceSink.cs" Link="TraceSink.cs" /><Compile Include="../../src/CharacterSheet/ReadBudget.cs" Link="ReadBudget.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/LscTotals.cs" Link="LscTotals.cs" /><Compile Include="../../src/CharacterSheet/LscCatalog.cs" Link="LscCatalog.cs" /></ItemGroup>
@@ -17,6 +18,12 @@
   <ItemGroup><Compile Include="../../src/CharacterSheet/EffectiveBonusView.cs" Link="EffectiveBonusView.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/EffectiveContributionMerge.cs" Link="EffectiveContributionMerge.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/BuildSheetModel.cs" Link="BuildSheetModel.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/DamagePowerModel.cs" Link="DamagePowerModel.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/BonusCombatWindow.cs" Link="BonusCombatWindow.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/HeadlineBonuses.cs" Link="HeadlineBonuses.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/NamedAbilityBonuses.cs" Link="NamedAbilityBonuses.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/InactiveBonusRules.cs" Link="InactiveBonusRules.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/CharacterSheet/HitBonusWindow.cs" Link="HitBonusWindow.cs" /><Compile Include="../../src/CharacterSheet/EffectAveragePresentation.cs" Link="EffectAveragePresentation.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/ModifierModel.cs" Link="ModifierModel.cs" /><Compile Include="../../src/CharacterSheet/ModifierRuntime.cs" Link="ModifierRuntime.cs" /><Compile Include="../../src/CharacterSheet/ModifierCatalog.cs" Link="ModifierCatalog.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/ContributorTiles.cs" Link="ContributorTiles.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../../src/CharacterSheet/PanelSpacing.cs" Link="PanelSpacing.cs" /></ItemGroup>

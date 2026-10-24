@@ -187,6 +187,12 @@ internal static class InvestigationTests
         check(dirty.Drain().Length==0,"scene changes clear pending property reads");
         var inputs=new Dictionary<string,long>{{"n",0},{"dam",500},{"lvl",1}};
         var expressions=new List<string>();
+        string hail=EffectExpression.Render("Weapon DMG +(lvl*30%), Lucky Shot Chance +(lvl*10%+10%).",inputs,
+            expression=>expression=="(lvl*30%)" ? "30%" : "20%");
+        check(hail=="Weapon DMG +30%, Lucky Shot Chance +20%." && EffectiveContributionMerge.Parse(hail).Count()==2,
+            "captured native percentage results reach both damage and luck without effect-specific arithmetic");
+        check(EffectExpression.Render("+((lvl*30%)+10%) Weapon DMG.",inputs,e=>e=="(lvl*30%)" ? "30%" : e=="(30%+10%)" ? "40%" : "invalid")=="+40% Weapon DMG.",
+            "nested native percentage results retain units in the parent expression");
         string rendered=EffectExpression.Render("+((n+dam)/100)% Rate of Fire.",inputs,expression=>
         {expressions.Add(expression);return expression=="(n+dam)"?"500":"5";});
         check(rendered=="+5% Rate of Fire." && expressions.SequenceEqual(new[]{"(n+dam)","(500/100)"}),
@@ -200,6 +206,7 @@ internal static class InvestigationTests
         check(Reject("(unknown)",_=>throw new Exception("must not evaluate")),"missing variables cannot silently evaluate as zero");
         check(Reject("((n)",_=>"1") && Reject("(n))",_=>"1"),"malformed descriptions fail closed");
         check(Reject("(n)",_=>"NaN") && Reject("(n)",_=>"Infinity") && Reject("(n)",_=>"unresolved"),"nonfinite or unresolved game results cannot become bonuses");
+        check(Reject("(n)",_=>"NaN%") && Reject("(n)",_=>"30%%") && Reject("(n)",_=>"30% damage"),"percentage support rejects malformed and nonfinite results");
         check(Reject(new string('(',10)+"n"+new string(')',10),_=>"1"),"expression nesting is bounded");
         var namedInputs=new Dictionary<string,long>{{"ST39903_DamRatio",2500}};
         string? received=null;

@@ -31,13 +31,21 @@ flags alone do not activate the new master switch.
 
 Storage
 New JSONL files are under BepInEx/StatsDiagnostic/Research. Rotation happens at
-4 MiB or 10,000 records. Limits: 64 MiB per session and 256 MiB of trace files
+4 MiB or 10,000 records. Default limits: 64 MiB per session and 256 MiB of trace files
 in this directory at startup plus this session. These limits assume a single
 game process. Logging stops at capacity; F8 trace health reports the limit.
 Archive needed traces and move/remove old research traces while the game is
 closed before recording more. Prior traces and callback journals are preserved;
 this build does not delete old investigation evidence automatically. Ordinary
 BepInEx startup/errors remain in its normal log even when research is off.
+
+Development build 0.13.40 adds restart-required [Diagnostics] settings:
+TraceSessionLimitMiB = 2048
+TraceDirectoryLimitMiB = 8192
+These suggested development values allow 2 GiB per launch and 8 GiB of retained
+research traces. Defaults remain 64/256. Session values are clamped to 1-16384
+MiB and directory values to 1-65536 MiB, using 64-bit byte conversion. The first
+limit reached stops writes. Larger storage limits do not fix queue overflow.
 
 Reporting
 Include the mod version, relevant trace session and all its -part files when

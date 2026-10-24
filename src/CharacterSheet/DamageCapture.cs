@@ -13,6 +13,11 @@ internal static class DamageCapture
     private static readonly Queue<DamageSample> dps = new();
     private static readonly Stopwatch clock = Stopwatch.StartNew();
     internal static double Now => clock.Elapsed.TotalSeconds;
+    internal static double LastWeaponHit = double.NegativeInfinity;
+    internal static double LastCombatHit = double.NegativeInfinity;
+    internal static readonly Queue<WeaponBonusHit> BonusHits=new();
+    internal static int BonusHitDrops;
+    private static long bonusSequence;
     private static double nextSummary, dpsTotal;
     private static double nextHealth;
     private static int dpsDrops;
@@ -66,6 +71,9 @@ internal static class DamageCapture
         batchOwnerErrors.Clear();
         batchOwners.Clear(); companionEvents = rejectedEvents = ownershipErrors = 0;
         ExecutionMarkers = 0;
+        LastWeaponHit=double.NegativeInfinity;
+        LastCombatHit=double.NegativeInfinity;
+        BonusHits.Clear();BonusHitDrops=0;
         Summary = "No local damage events yet.";
         WeaponLsc = SkillLsc = null; WeaponSamples = SkillSamples = 0;
         WeaponDps = SkillDps = AverageWeaponHit = AverageSkillHit = weaponDpsTotal = skillDpsTotal = 0;
@@ -133,6 +141,13 @@ internal static class DamageCapture
             // the weapon flag too; retain it in DPS, not in the weapon LSC roll.
             bool weaponHit = !companion && (hit.Type & 0xF00000) == 0x800000 && hit.Action >= 30000 && hit.Action <= 65500;
             bool skillHit = !companion && (hit.Type & 0xF00000) == 0x400000;
+            if(weaponHit || skillHit)LastCombatHit=hit.Time;
+            if(weaponHit)
+            {
+                LastWeaponHit=hit.Time;
+                if(BonusHits.Count>=8192){BonusHits.Dequeue();BonusHitDrops++;}
+                BonusHits.Enqueue(new(++bonusSequence,hit.Time,hit.Weapon,weak));
+            }
             var sample = new DamageSample(hit.Time, hit.Damage, hit.Lucky, weak, weaponHit, skillHit);
             if (!companion) window.Add(sample);
             if (hit.Damage > 0)

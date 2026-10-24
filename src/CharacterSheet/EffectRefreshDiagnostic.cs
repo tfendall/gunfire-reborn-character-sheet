@@ -9,6 +9,7 @@ internal static class EffectRefreshDiagnostic
     internal static bool Enabled;
     internal static bool ShowInBuild;
     internal static readonly EffectiveBonusView View=new();
+    private static readonly InactiveBonusRules inactive=new();
     internal static double Now=>clock.Elapsed.TotalSeconds;
     private static readonly Stopwatch clock=Stopwatch.StartNew();
     private static readonly Dictionary<int,string> fingerprints=new();
@@ -23,10 +24,10 @@ internal static class EffectRefreshDiagnostic
         int currentScene=UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle;
         if(player!=Panel.LocalPlayerId || epoch!=DamageCapture.Epoch || scene!=currentScene)
         {
-            View.Clear();fingerprints.Clear();unresolved.Clear();afterId=0;player=Panel.LocalPlayerId;epoch=DamageCapture.Epoch;scene=currentScene;
+            View.Clear();inactive.Clear();fingerprints.Clear();unresolved.Clear();afterId=0;player=Panel.LocalPlayerId;epoch=DamageCapture.Epoch;scene=currentScene;
             TraceStore.Write("effect-refresh-reset",$"player={player} epoch={epoch} scene={scene}");
         }
-        if(!Panel.RunActive || player==0){View.Clear();fingerprints.Clear();return;}
+        if(!Panel.RunActive || player==0){View.Clear();inactive.Clear();fingerprints.Clear();return;}
         if(!Panel.Capture || !LoadingGuard.CanRead || !StatsScreen.ReadsAllowed || clock.Elapsed.TotalSeconds<next)return;
         next=clock.Elapsed.TotalSeconds+0.5;
         var caches=StateManager.StateCacheDict;
@@ -34,15 +35,23 @@ internal static class EffectRefreshDiagnostic
         var states=caches[player]?.StateDict;
         var table=tableInstance?.GetValue(null) as DataHelper.StateData;
         if(states==null || table==null)return;
-        var seen=new HashSet<int>();bool complete=true;
+        var seen=new HashSet<int>();var presentSids=new HashSet<int>();bool complete=true;
         foreach(var entry in states)
         {
             if(seen.Count>=512){complete=false;break;}
             seen.Add(entry.Key);
+            if(entry.Value==null)complete=false;else presentSids.Add(entry.Value.SID);
         }
         if(!complete)TraceStore.Write("effect-refresh-limit","server state enumeration capped at 512; coverage incomplete");
         // Remove vanished effects on every complete scan, before the rotating work batch.
         if(complete)foreach(var row in View.Snapshot())if(!seen.Contains(row.Id))View.Remove(row.Id);
+        // Incomplete scans invalidate absence claims immediately.
+        foreach(var row in View.Snapshot().Where(r=>r.Id<0))View.Remove(row.Id);
+        foreach(var zero in inactive.Observe(presentSids,complete,ModifierRuntime.Findings,Now))
+        {
+            View.Set(zero.Id,zero.Name,zero.Text,zero.Checked,true,zero.Source,zero.SourceId,zero.MaxAge);
+            if(Enabled)TraceStore.Write("effect-confirmed-inactive-"+zero.SourceId,JsonSerializer.Serialize(new {zero.Source,zero.SourceId,zero.Text,complete=true}));
+        }
         foreach(int id in EffectExpression.Batch(seen,afterId))
         {
             afterId=id;
@@ -56,6 +65,9 @@ internal static class EffectRefreshDiagnostic
                 displayName=definition?.Name??"";
                 if(!state.CanShow || displayName.StartsWith("#",StringComparison.Ordinal))displayName="";
                 if(displayName.Length==0)View.Remove(id);
+                // October 16: external-source Field Support reports n=0 even
+                // while present. Its generic stack formula is not verified.
+                if(EffectiveBonusView.ResolutionBlock(state.SID) is string blocked)throw new InvalidOperationException(blocked);
                 // These native tooltip branches override generic inputs/formatting.
                 // They remain explicit unsupported cases, not an item inclusion list.
                 if(state.SID is 1668 or 8037)throw new InvalidOperationException("special-tooltip-variable-producer");
@@ -88,7 +100,14 @@ internal static class EffectRefreshDiagnostic
                 string fingerprint=JsonSerializer.Serialize(new {state.SID,description,values});
                 if(fingerprints.TryGetValue(id,out string? old) && old==fingerprint &&
                     (displayName.Length==0 || View.Snapshot().Any(row=>row.Id==id && row.Resolved)))
-                {if(displayName.Length>0)View.Touch(id,Now);continue;}
+                {
+                    if(displayName.Length>0)
+                    {
+                        View.Touch(id,Now);
+                        inactive.Learn(state.SID,View.Snapshot().Single(row=>row.Id==id),ModifierRuntime.Findings);
+                    }
+                    continue;
+                }
                 var native=new Il2CppSystem.Collections.Generic.Dictionary<string,long>();
                 foreach(var item in values)native.Add(item.Key,item.Value);
                 var calculations=new List<object>();
@@ -108,11 +127,18 @@ internal static class EffectRefreshDiagnostic
                     stateId=id,sid=state.SID,name=definition.Name,description,inputs=values,result,calculations,
                     durationMs=(Stopwatch.GetTimestamp()-started)*1000.0/Stopwatch.Frequency,source=calculations.Count==0?"game-static-description":"diagnostic-game-evaluator"}));
                 fingerprints[id]=fingerprint;unresolved.Remove(id);
-                if(displayName.Length>0)View.Set(id,displayName,result,Now,true,
+                var identity=EffectiveBonusView.SourceFor(state.SID,
                     extra==null?"":((int)extra.PerfromType & ~0x4000) switch {4=>"ascension",5=>"scroll",18=>"gem",_=>""},extra?.typesid??0);
+                if(displayName.Length>0)
+                {
+                    View.Set(id,displayName,result,Now,true,identity.Source,identity.Id,stateSid:state.SID);
+                    inactive.Learn(state.SID,new(id,displayName,result,Now,true,identity.Source,identity.Id,StateSid:state.SID),ModifierRuntime.Findings);
+                }
+                else inactive.Forget(state.SID);
             }
             catch(Exception ex)
             {
+                inactive.Forget(state.SID);
                 fingerprints.Remove(id);
                 if(displayName.Length>0)View.Set(id,displayName,"",Now,false);
                 string reason=$"sid={state.SID} reason={ex.GetBaseException().Message}";

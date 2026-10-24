@@ -74,7 +74,7 @@ internal static class ModifierRuntime
                     if(rule.Condition!=ModifierCondition.Always || !LscCatalog.Entries.TryGetValue((item.Source,item.Id,item.Level),out var legacy) || !legacy.Flat.HasValue)
                         luck.Add(new(item.Category,name,value,rule.Requirement));
                 }
-                else if(value.HasValue)rows.Add(new(rule.Metric,item.Category,name,value.Value,rule.Layer,rule.Unit,rule.Scope,rule.Condition));
+                else if(value.HasValue)rows.Add(new(rule.Metric,item.Category,name,value.Value,rule.Layer,rule.Unit,rule.Scope,rule.Condition,item.Source,item.Id,item.Level));
             }
             var finding=ModifierEvaluator.Coverage(item,definition,ammo) with { Category=item.Category };
             if(unknown)finding=finding with { Status=ModifierCoverage.NeedsState,Reason="Runtime measurement missing/stale; excluded from totals. "+definition.Description };

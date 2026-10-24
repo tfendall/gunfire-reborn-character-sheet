@@ -1,5 +1,13 @@
+if(args.Length>0 && args[0]=="--coverage") { AttributionCoverageReport.Run(args); return; }
 static void Check(bool condition, string test) { if (!condition) throw new Exception(test); Console.WriteLine("PASS " + test); }
+TraceReplayTests.Run(Check);
 DamageCaptureTests.Run(Check);
+DamagePowerTests.Run(Check);
+BonusWindowTests.Run(Check);
+HeadlineBonusTests.Run(Check);
+CombinedBonusTests.Run(Check);
+AttributionGapTests.Run(Check);
+NamedAbilityTests.Run(Check);
 var tooltipBuffer=new TooltipObservationBuffer();
 tooltipBuffer.Add("GetValue",10,132,1668,"count=0","200%");
 tooltipBuffer.Add("GetValue",10,132,1668,"count=0","200%");
@@ -102,7 +110,7 @@ ModifierRuntime.Buffs("server",new(),false);Check(ModifierRuntime.Rows.Count==0,
 ModifierRuntime.Begin();ModifierRuntime.Add("gem",51781,1,"Soul Jade");ModifierRuntime.Commit("other");
 Check(ModifierRuntime.Findings.Single(f=>f.Id==51781).Status!=ModifierCoverage.Calculated, "unmapped definition cannot be falsely reported as calculated");
 Check(ModifierCatalog.Entries.Keys.Count==ModifierCatalog.Entries.Keys.Distinct().Count() && ModifierCatalog.Entries.Values.All(d=>d.Rules.All(r=>double.IsFinite(r.Amount) && (!r.Cap.HasValue || r.Cap.Value>=0))), "whole modifier catalogue has unique identities and valid finite rules");
-Check(BuildCatalog.Entries.All(pair=>ModifierCatalog.Entries.TryGetValue(pair.Key,out var model) && pair.Value.Bonuses.All(b=>model.Rules.Any(r=>r.Metric==b.Metric && r.Amount==b.Value))), "all reviewed legacy damage mappings survive migration into the shared engine");
+Check(BuildCatalog.Entries.All(pair=>ModifierCatalog.Entries.TryGetValue(pair.Key,out var model) && pair.Value.Bonuses.All(b=>model.Rules.Any(r=>r.Metric==(pair.Key.Source=="ascension" && NamedAbilityBonuses.DamageText(b.Metric)!=b.Metric ? NamedAbilityBonuses.DamageText(b.Metric)+" buffs" : b.Metric) && r.Amount==b.Value))), "all reviewed legacy damage mappings survive migration into the shared engine");
 Check(ModifierCatalog.Entries[("ascension",3101,1)].Rules.Single().Scope=="Ability: Blazing Meteor" && ModifierCatalog.Entries[("ascension",3102,1)].Rules.Single().Scope.StartsWith("Target:"), "ability and target applicability are represented explicitly in modifier rules");
 Check(ModifierCatalog.Entries.Where(pair=>pair.Key.Source=="ascension").Count()==758, "coverage includes every audited hero ascension level rather than only mapped effects");
 Check(ModifierCatalog.Entries[("ascension",3007,1)].Rules.Single().Amount==150 && ModifierCatalog.Entries[("ascension",3601,1)].Rules.Single().Amount==200, "strict shared grammar covers previously missing named abilities across heroes");
@@ -263,8 +271,9 @@ GemArtworkIds.Observe("[budget limit]");
 Check(!GemArtworkIds.TryGet(51800,out _) && GemArtworkIds.TryGet(51771,out _), "incomplete inventory cannot invent gem artwork identities");
 InvestigationTests.Run(Check);
 var groupedBuild=BuildSheetModel.Stable(Array.Empty<BuildContribution>()).GroupBy(BuildSheetModel.Family).OrderBy(group=>BuildSheetModel.FamilyRank(group.Key)).ToArray();
-Check(groupedBuild.Select(group=>group.Key).SequenceEqual(new[]{"WEAPON & LUCK","SKILLS","ELEMENTS","ATTACK & MOVEMENT"}) && groupedBuild.Sum(group=>group.Count())==BuildSheetModel.MainMetrics.Length, "compact build families keep every main modifier visible in a stable order");
-Check(groupedBuild.Single(group=>group.Key=="SKILLS").Count()==4 && groupedBuild.Single(group=>group.Key=="ELEMENTS").Any(row=>row.Key=="Explosion DMG buffs"), "compact group counts preserve skill scopes and explosion damage");
+Check(groupedBuild.Select(group=>group.Key).SequenceEqual(new[]{"WEAPON & LUCK","SKILLS","PRIMARY SKILL DAMAGE","SECONDARY SKILL DAMAGE","ELEMENTS","ATTACK & MOVEMENT","DAMAGE BONUSES"}) && groupedBuild.Sum(group=>group.Count())==BuildSheetModel.MainMetrics.Length, "compact build families keep every main modifier visible in a stable order");
+Check(groupedBuild.Single(group=>group.Key=="DAMAGE BONUSES").Single().Key=="All DMG buffs", "all damage retains its own headline without assuming weapon or skill stacking");
+Check(groupedBuild.Single(group=>group.Key=="SKILLS").Count()==2 && groupedBuild.Where(group=>group.Key is "PRIMARY SKILL DAMAGE" or "SECONDARY SKILL DAMAGE").All(group=>group.Select(BuildSheetModel.RowLabel).SequenceEqual(new[]{"Additive bonus","Base bonus"})) && groupedBuild.Single(group=>group.Key=="ELEMENTS").Any(row=>row.Key=="Explosion DMG buffs"), "compact group counts preserve skill scopes and explosion damage");
 
 var budgetDir=Path.Combine(Path.GetTempPath(),"gunfire-trace-budget-"+Guid.NewGuid());
 Directory.CreateDirectory(budgetDir);

@@ -1,5 +1,6 @@
 internal sealed record BuildContribution(string Metric, string Source, string Name, double Value,
-    ModifierLayer? Layer = null, ModifierUnit? Unit = null, string Scope = "", ModifierCondition Condition = ModifierCondition.Always);
+    ModifierLayer? Layer = null, ModifierUnit? Unit = null, string Scope = "", ModifierCondition Condition = ModifierCondition.Always,
+    string SourceKey = "", int SourceId = 0, int SourceLevel = 0);
 internal sealed record BuildNote(string Source, string Name, string Section, string Text);
 internal static class BuildBonuses
 {

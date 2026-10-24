@@ -9,13 +9,22 @@ internal static class ContributorTiles
                 tiles.Add(row.Source=="Weapon"
                     ? new("Weapon inscription","Weapon inscription",row.Amount.HasValue ? "+"+row.Amount.Value.ToString("0.#")+"%" : "—","")
                     : new(row.Source,row.Name,row.Amount.HasValue ? "+"+row.Amount.Value.ToString("0.#")+"%" : "—",row.Note));
-        else foreach(var row in values)tiles.Add(new(row.Source,row.Name,BuildSheetModel.Value(row.Metric,row.Value),""));
+        else foreach(var row in values)tiles.Add(new(row.Source,row.Name,BuildSheetModel.Value(row.Metric,row.Value),
+            row.Name.EndsWith(" (retained status)") ? "Live status bonus; source is no longer equipped." :
+            row.SourceId!=0 && row.SourceLevel==0 ? "Combined live bonus across owned copies; individual shares are unknown." : "",row.SourceKey,row.SourceId));
         foreach(var finding in findings)
         {
             if(!ModifierCatalog.Entries.TryGetValue((finding.Source,finding.Id,finding.Level),out var definition))continue;
             int existing=tiles.FindIndex(tile=>tile.Source==finding.Category && tile.Name.StartsWith(definition.Name,StringComparison.Ordinal));
-            if(existing>=0){tiles[existing]=tiles[existing] with {Description=definition.Description,IconSource=finding.Source,IconId=finding.Id};continue;}
-            if(finding.Status==ModifierCoverage.NoNumericModifier || !BuildSheetModel.Relevant(metric,definition.Description))continue;
+            if(existing>=0)
+            {
+                var tile=tiles[existing];
+                string description=tile.Name.Contains(" (combined · ")
+                    ? tile.Description+(tile.Description.Contains(definition.Description) ? "" : "\n\n"+definition.Description)
+                    : definition.Description;
+                tiles[existing]=tile with {Description=description,IconSource=finding.Source,IconId=finding.Id};continue;
+            }
+            if(finding.Status==ModifierCoverage.NoNumericModifier || !BuildSheetModel.Relevant(metric,definition.Description,finding.Source))continue;
             string source=finding.Category.Length>0 ? finding.Category : finding.Source;
             string name=finding.Source=="inscription" ? "Weapon inscription" : definition.Name+" (Lv "+finding.Level+")";
             tiles.Add(new(source,name,"—",definition.Description,finding.Source,finding.Id));

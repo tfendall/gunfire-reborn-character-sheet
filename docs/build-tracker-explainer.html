@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inside the Build Tracker</title>
+<style>
+:root{--bg:#101b21;--panel:#192931;--ink:#eaf1ed;--muted:#b4c5c6;--gold:#f5ca78;--teal:#77ddc6;--line:#36505a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,sans-serif}main{max-width:1160px;margin:auto;padding:60px 28px 90px}h1{font-size:clamp(40px,6vw,72px);line-height:1.05;letter-spacing:-.04em;margin:18px 0 24px;max-width:850px}h2{font-size:30px;line-height:1.2;margin:0 0 20px}h3{font-size:19px;margin:0 0 10px}p{margin:0 0 16px}.eyebrow{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--teal)}.lead{font-size:21px;max-width:850px;color:var(--muted)}nav{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 45px}a{color:var(--teal)}nav a,button{padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);text-decoration:none;cursor:pointer;font:inherit}button[aria-selected=true]{background:var(--gold);color:#15232a;border-color:var(--gold)}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:4px}section{margin:60px 0;scroll-margin-top:20px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.two{grid-template-columns:repeat(2,1fr)}.card,.callout{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:24px}.callout{border-left:4px solid var(--gold);margin:22px 0}.muted,small{color:var(--muted)}.badge{display:inline-block;font-size:12px;padding:3px 8px;border-radius:20px;background:#24473f;color:var(--teal);margin-bottom:10px}.research{background:#443c32;color:var(--gold)}.pipeline{display:grid;grid-template-columns:1fr 42px 1fr 42px 1fr;align-items:stretch;gap:0}.arrow{display:grid;place-items:center;color:var(--gold);font-size:28px}.step{font-size:12px;color:var(--gold);letter-spacing:.1em}.branch{margin:18px 0 0;padding:16px 22px;border:1px dashed var(--line);border-radius:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0;padding:18px;background:#0c151b;border-radius:10px;color:#c7ece1;font:13px/1.6 ui-monospace,monospace}code{font-family:ui-monospace,monospace;font-size:.87em;overflow-wrap:anywhere}.tabbar{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}.sample[hidden]{display:none}.numbers{display:flex;gap:14px;flex-wrap:wrap}.number{flex:1;min-width:120px;background:#0c151b;border-radius:10px;padding:16px}.number b{display:block;font-size:30px;color:var(--gold)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--teal)}.tablewrap{overflow-x:auto}.hook{min-width:230px}.small{font-size:14px}details{border-bottom:1px solid var(--line);padding:15px 0}summary{cursor:pointer;font-weight:600;color:var(--gold)}input[type=range]{width:100%;accent-color:var(--teal)}.bar{height:22px;border-radius:6px;background:#334a54;overflow:hidden;margin:18px 0}.bar span{display:block;height:100%;background:var(--teal)}.ui{background:#101b19;border:1px solid #65715a;padding:20px;border-radius:10px}.ui h3{color:var(--gold);font-size:14px;letter-spacing:.08em}.ui .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #334536}.ui strong{color:var(--gold)}footer{border-top:1px solid var(--line);padding-top:25px;color:var(--muted)}ul{padding-left:20px}li{margin:8px 0}@media(max-width:760px){main{padding:32px 18px}.grid,.two{grid-template-columns:1fr}.pipeline{grid-template-columns:1fr}.arrow{height:35px;transform:rotate(90deg)}h2{font-size:25px}section{margin:42px 0}}@media print{body{background:white;color:#18262c}main{max-width:none;padding:10px}.card,.callout,.ui{background:white;color:#18262c;break-inside:avoid}.muted,small,.lead{color:#40545b}nav,.tabbar,.filters{display:none}.sample[hidden]{display:block}pre{background:#eef4f3;color:#163a31}section{margin:26px 0}a{color:#235c50}h1{font-size:40px}td,th{color:#18262c}}
+.sample-controls{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin:26px 0 12px}.sample-controls label{font-size:14px;color:var(--muted)}.sample-controls input,.sample-controls select{display:block;width:100%;margin-top:7px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}.sample-entry[hidden]{display:none}.sample-entry dt{font-weight:650;color:var(--teal);font-size:13px;margin-top:18px}.sample-entry dd{margin:6px 0 0;font-size:15px}.sample-entry .eyebrow{margin-bottom:12px}.sample-entry{align-self:start}.sample-entry h3{font-size:23px}@media(max-width:760px){.sample-controls{grid-template-columns:1fr}}@media print{.sample-controls{display:none}.sample-entry[hidden]{display:block}.sample-entry pre{font-size:10px}}
+</style></head><body><main>
+<div class="eyebrow">Gunfire Reborn · implementation report · 15 October 2026 · v0.13.48</div>
+<h1>From game events<br>to your build numbers.</h1>
+<p class="lead">The tracker combines what you own, what the game says is active, and what happened during combat. This explains the journey—and the places where information can be lost.</p>
+<nav aria-label="Report sections"><a href="#map">Pipeline</a><a href="#hooks">Hooks & reads</a><a href="#examples">Real examples</a><a href="#catalogue">27 sample walkthroughs</a><a href="#window">Try the average</a><a href="#display">Display & limits</a><a href="#sources">Source code</a></nav>
+<div class="callout"><strong>The key distinction:</strong> the Damage tab measures damage events. The Build tab assembles bonus percentages from understood contributions. We do <strong>not</strong> have one authoritative “final weapon bonus” number that we can simply divide among your items.</div>
+
+<section id="map"><div class="eyebrow">01 / The big picture</div><h2>Two paths through the tracker</h2>
+<div class="pipeline"><div class="card"><div class="step">01 · READ THE GAME</div><h3>Inventory + statuses</h3><p>Which scrolls, gems and ascensions are equipped? Which status instances exist? What values does each status expose?</p><small>Periodic snapshots, rather than reading pixels from the status bar.</small></div><div class="arrow" aria-hidden="true">→</div><div class="card"><div class="step">02 · INTERPRET</div><h3>Resolve + match</h3><p>Evaluate description formulas, recognize damage metrics, identify their sources, and replace catalogue amounts with fresh live values.</p><small>Unknown conditions and conflicting readings stay unresolved.</small></div><div class="arrow" aria-hidden="true">→</div><div class="card"><div class="step">03 · SUMMARIZE</div><h3>Average + display</h3><p>Sample the synchronous totals, integrate over 30 combat seconds, and show separate bonus families with contributor details.</p><small>This produces the Build tab.</small></div></div>
+<div class="branch"><strong>Damage path:</strong> damage callback → local-player ownership / source classification → damage ledger → reconciliation with the game’s scoreboard → Damage tab. Hits also tell the bonus window when combat is happening.</div>
+<div class="branch"><strong>Research path:</strong> property, status, tooltip and formula hooks → bounded diagnostic queues → JSONL logs. These explain the game’s behavior, but an observed research value does not automatically become a displayed bonus.</div>
+</section>
+
+<section id="hooks"><div class="eyebrow">02 / Where the information enters</div><h2>A hook listens. A poll asks.</h2><p class="muted">A Harmony hook runs around a game method when that method is called. A poll periodically reads existing game objects. The Build tab depends heavily on polls; it does not depend on you hovering every status icon.</p>
+<div class="tabbar filters" aria-label="Filter capture sources"><button data-filter="all" aria-pressed="true">All sources</button><button data-filter="display" aria-pressed="false">Feeds the display</button><button data-filter="research" aria-pressed="false">Research / diagnostics</button></div>
+<div class="tablewrap"><table><thead><tr><th>Entry point</th><th>What it gives us</th><th>Where it goes</th></tr></thead><tbody>
+<tr data-kind="display"><td class="hook"><span class="badge">Hook · damage</span><br><code>FollowTextManager.WStatusHP</code></td><td>Damage notification payload: hit identity and the fields used for damage/source accounting.</td><td><code>DamageCapture.Enqueue</code> → managed ledger and combat timing. It is a damage notification, not a per-item explanation.</td></tr>
+<tr data-kind="display"><td><span class="badge">Hook · scoreboard</span><br><code>TeamWarData.AddTeamerDMG</code></td><td>Player/team identity, reported damage, seasonal damage and a breakdown structure.</td><td>Scoreboard reconciliation and seasonal partitions for the Damage tab. Does not resolve the Build tab’s item percentages.</td></tr>
+<tr data-kind="research"><td><span class="badge research">Hooks · audit</span><br><code>s2cnetwar.GS2CWStatusHP</code><br><code>s2cnetwar.GS2CDie</code></td><td>Packet correlation and death evidence.</td><td>Audit callback relationships and possible discrepancies. The packet is not counted as another independent hit.</td></tr>
+<tr data-kind="display"><td><span class="badge">Poll · ownership</span><br><code>BaseLsc</code> / <code>BuildBonuses</code></td><td>Equipped scrolls, gems, ascensions, blessings; source ID, level, category; current weapon properties.</td><td>Reviewed catalogue rules → <code>ModifierRuntime</code> → static contributions and unresolved-coverage findings. Weapon CritX is a current property.</td></tr>
+<tr data-kind="display"><td><span class="badge">Poll · active status</span><br><code>StateManager.StateCacheDict</code><br><code>GetStateExtraInfo</code></td><td>State instance ID, definition ID, display name, count, formula inputs, and source identity when available.</td><td><code>EffectRefreshDiagnostic</code> polls at about 0.5s, evaluates a rotating batch of up to eight states, and updates the effective-bonus view.</td></tr>
+<tr data-kind="display"><td><span class="badge">Poll · resources</span><br><code>InventoryCapture</code></td><td>Server/client buff snapshots, magazine ammo, inscriptions, seasonal resources and detailed status samples.</td><td>Some snapshots feed runtime rules; others are research only. One of 16 sources is sampled per scheduled 0.1s pass—not all 16 every 0.1s.</td></tr>
+<tr data-kind="research"><td><span class="badge research">Hooks · properties</span><br><code>PropObject.UpdatePropValue</code><br><code>NewObjectCache.UpdatePlayerProp</code><br><code>ItemPropCache.UpdatePropByItem</code></td><td>Property changes and object identity, filtered to the local player or related objects.</td><td>Diagnostic observations and deferred property surveys. These help identify reliable inputs; raw property deltas are not automatically attributed to an item.</td></tr>
+<tr data-kind="research"><td><span class="badge research">Hooks · lifecycle</span><br><code>StateManager.AddState / DelState / RefreshState / RefreshStateCnt / RefreshExtraInfo</code></td><td>Status creation, removal, count and extra-data changes; client-side equivalents are also observed.</td><td>Research trail. Displayed inactive zeros are established by complete polling snapshots and learned mappings, not by blindly trusting every callback.</td></tr>
+<tr data-kind="research"><td><span class="badge research">Hooks · formulas & tooltips</span><br><code>PCWP_State_logic.GetValue / OperateDesc</code><br><code>Evaluate.OperateWithParam</code></td><td>Description templates, formula inputs and returned strings such as <code>30%</code>.</td><td>Research logs explain formula semantics. Separately, the refresh poll calls the game evaluator using that status’s own inputs to produce display candidates.</td></tr>
+<tr data-kind="research"><td><span class="badge research">Hooks · skill & season</span><br><code>CSkillBase.CalculatePropCacheAddition</code><br><code>BulletChange.CFormula.RunFormula</code><br><code>S9.FormulaCalculator.CalculateFormula</code></td><td>Skill calculation context, bullet-modifier calculations and seasonal formula evidence.</td><td>Diagnostic traces. Not a complete, verified per-hit breakdown of every effect’s damage.</td></tr>
+</tbody></table></div>
+<details><summary>More hook names, and what “enabled” means</summary><p class="small">The table groups overloads and related methods. Additional registrations include <code>PropObject.ExeAllCachedValueChangeEvent / ExecPropChangeEvent</code>, <code>ClientPrepData.ClientAddPrepDate / ClearProItem / Clear</code>, <code>S8Manager.RefreshS8GemAttr / RefreshS8ThirdItemAttr</code>, server/client state clears, <code>CSkillBase.AddBulletChangeFixedArg / AddBulletChangePerTenThousandArg</code>, and <code>BulletChange.CRuleAction.BulletChangeCBSetSkillSnapshot</code>.</p><p class="small">Tooltip research also observes <code>GetDescWithExtraInfo</code>, <code>GetStateLevel</code>, <code>OperateDescByFormula</code>, <code>SpecialOperateDesc</code>, <code>UpdateDescObj</code>, <code>OnEnterState</code> and <code>OnExitState</code>. Effective diagnostics include <code>Evaluate.EvaluateInfixExpression</code>.</p><p class="small">These are code registration paths, not a claim that every hook fired in a particular run. Missing or failed hooks have trace markers. The configured <code>AttackProbe</code> is a separate, optional F10 observer—not automatically active merely because it is selected in the config. <code>SkillCollectData</code> probe classes also exist in the source; this report does not count their presence as proof of active capture.</p></details>
+</section>
+
+<section id="examples"><div class="eyebrow">03 / Follow a real value</div><h2>Three examples from our runs</h2><p class="muted">Log excerpts below are shortened to relevant fields. Labels identify historical observations versus current implementation behavior.</p>
+<div class="tabbar" role="tablist" aria-label="Example"><button role="tab" id="tab-hail" aria-controls="hail" aria-selected="true" data-tab="hail">Hail of Bullets</button><button role="tab" id="tab-fodder" aria-controls="fodder" aria-selected="false" data-tab="fodder">Weapon Fodder</button><button role="tab" id="tab-soul" aria-controls="soul" aria-selected="false" data-tab="soul">Shattered Soul</button></div>
+<article class="sample" id="hail" role="tabpanel" aria-labelledby="tab-hail"><div class="grid two"><div class="card"><span class="badge">Actual status sample</span><h3>We saw the effect before we could use it.</h3><pre>{
+  "sid": 32213,
+  "name": "Hail of Bullets",
+  "canShow": true,
+  "performType": 4,
+  "typeSid": 2216,
+  "text": "Weapon DMG +(lvl*30%), Lucky Shot Chance +(lvl*10%+10%)."
+}</pre><small>Source: trace-20261015-181046-869 · active-status-detail (text extracted from descriptions).</small></div><div class="card"><span class="badge research">Observed failure → shared fix</span><h3>The missing link was the percent sign.</h3><pre>Evaluate.OperateWithParam
+expression: (lvl*30%)
+inputs: lvl=1, n=0
+result: "30%"
+
+Old validator: non-numeric-result</pre><p>The old renderer accepted plain numbers only. The shared fix preserves a trailing percent sign, so the parser can recognize the metric and value.</p><p><strong>Pipeline result:</strong> the accepted clause can supply +30% Weapon Damage. The other formula can supply Lucky Shot Chance. This fixes the format; it is not a new Hail-specific arithmetic rule.</p></div></div></article>
+<article class="sample" id="fodder" role="tabpanel" aria-labelledby="tab-fodder" hidden><div class="grid two"><div class="card"><span class="badge">Actual evaluated sample</span><h3>The live status knows more than the catalogue.</h3><pre>{
+  "sid": 39904,
+  "name": "Weapon Fodder",
+  "inputs": { "ST39904_DamRatio": 5500, "n": 0 },
+  "result": "+55% Weapon DMG."
+}</pre><small>Source: trace-20261015-223642-951 · effect-refresh-result · 2026-10-15T23:02:42Z.</small><p class="small">The observed source mapping is gem 51788. A catalogue entry for an equipped level-2 copy supplies +40%; the fresh status supplies the current aggregate instead.</p></div><div class="card"><span class="badge">Current merge behavior</span><h3>Count the captured value once.</h3><p>With one or more matching copies, replace their matching catalogue amounts with the single fresh source-level value. Do not add +55% on top of the listed amounts.</p><p>With no equipped copy, v0.13.48 can still accept a fresh, explicitly identified status from a known source and label it <strong>retained status</strong>. This path is tested; it still needs live verification after selling the final copy.</p><p><strong>Important:</strong> the log showed +55% current status while the recorded combat average was still +25%. A new current value does not rewrite earlier combat.</p></div></div></article>
+<article class="sample" id="soul" role="tabpanel" aria-labelledby="tab-soul" hidden><div class="grid two"><div class="card"><span class="badge">Actual display snapshot</span><h3>A named skill maps to a role.</h3><pre>{
+  "Name": "Shattered Soul (Lv 1)",
+  "Metric": "Secondary Skill Base DMG buffs",
+  "Value": 150,
+  "Layer": 1,
+  "Scope": "Ability: Essence Chain"
+}
+
+30s window:
+Average: 150   Coverage: 100   Partial: false</pre><small>Source: trace-20261015-195042-613 · displayed-bonus-snapshot · time 499.5634485. Layer 1 means Base.</small></div><div class="card"><span class="badge">Catalogue → shared role mapping</span><h3>Base stays separate from additive.</h3><p>The reviewed rule says <strong>+150% Base DMG of Essence Chain</strong>. The named-ability table recognizes Essence Chain as a secondary skill, preserving the base layer.</p><div class="ui"><h3>SECONDARY SKILL DAMAGE</h3><div class="row"><span>Additive bonus</span><strong>separate value</strong></div><div class="row"><span>Base bonus</span><strong>+150%</strong></div></div><p class="small">Illustrative layout for this one contribution. The +150% is observed; the additive line is deliberately not assigned a value here. No combined final damage multiplier is inferred.</p></div></div></article>
+</section>
+
+<section id="catalogue"><div class="eyebrow">03B / A larger sample catalogue</div><h2>27 snapshots. A handful of recurring patterns.</h2>
+<p class="lead">Start with the resolved value, then follow the numbered explanation. Expand a sample to see the exact formula inputs and evaluator output.</p>
+<div class="callout"><strong>Read this as a processing guide, not a claim that all these bonuses reached the UI.</strong> Every card contains an actual <code>effect-refresh-result</code> from the local logs. Its explanation applies the current v0.13.48 parser and merge rules. Source matching, freshness and competing states can still prevent a recognized value from reaching the display. Repeated names are distinct historical snapshots, not a measured before/after experiment.</div>
+<div class="grid two"><div class="card"><h3>Patterns to look for</h3><ol><li><strong>Same formula shape:</strong> Weapon Fodder and Skill Fodder use a named field divided by 100.</li><li><strong>Same inputs, different scaling:</strong> Soul Echo and the Serpent affix both use count and amount.</li><li><strong>One description, several outcomes:</strong> Last Stand and Vindictive Nature contain clauses we treat differently.</li><li><strong>A number is not enough:</strong> stored damage, CritX, next-shot bonuses and damage taken need different meanings.</li></ol></div><div class="card"><h3>Four checks before display</h3><p><strong>Formula:</strong> Can the game evaluate this template with the available inputs?</p><p><strong>Metric:</strong> Do we know what the result measures?</p><p><strong>Attribution:</strong> Is there a fresh, unambiguous source-level contribution?</p><p><strong>Window:</strong> Was the contribution observed during the combat time being averaged?</p></div></div>
+<div class="sample-controls"><label>Find an effect, metric or pattern<input id="sample-search" type="search" placeholder="Try: Fodder, next, percent, source" autocomplete="off"></label><label>Processing pattern<select id="sample-category"><option value="all">All patterns</option></select></label></div>
+<p id="sample-count" class="muted" role="status"></p><div id="sample-cards" class="grid two"></div>
+<noscript><p>This catalogue needs JavaScript to render its embedded samples. The three original examples above remain readable without it.</p></noscript>
+</section>
+<section id="window"><div class="eyebrow">04 / Try the calculation</div><h2>A bonus can be active now without owning the whole average.</h2><div class="grid two"><div class="card"><h3>Illustration: +30% while active</h3><label for="active">Active time within 30 fully observed combat seconds: <strong id="seconds">6 seconds</strong></label><input id="active" type="range" min="0" max="30" value="6" step="1"><div class="bar" aria-hidden="true"><span id="activebar" style="width:20%"></span></div><p id="equation">(30% × 6s + 0% × 24s) ÷ 30s = +6%</p><div class="numbers" aria-live="polite"><div class="number"><small>Average</small><b id="avg">+6%</b></div><div class="number"><small>Uptime</small><b id="uptime">20%</b></div><div class="number"><small>Time observed</small><b>100%</b></div></div><p class="small">Synthetic teaching example, not a reconstruction of your run. Assumes the inactive intervals are confirmed zero and the whole window is observed.</p></div><div class="card"><h3>What the production window actually does</h3><ul><li>Samples bonuses about every <strong>250ms</strong>.</li><li>Counts combat time around weapon and skill hits, with a two-second grace period. Longer idle time pauses the window.</li><li>Integrates the previous observation forward; a new value is never applied backward.</li><li>Unknown intervals are excluded from the average and reduce observation coverage. They are <strong>not zero</strong>.</li><li>Pauses and sampling gaps over one second are treated as unknown when they overlap combat.</li><li>Weapon/player/run changes and resets clear the bonus window. Status-learning mappings also reset on scene changes.</li></ul></div></div>
+<div class="callout"><strong>Two different kinds of incompleteness:</strong> “100% of time observed” can still accompany an asterisk. We may have sampled the known subtotal throughout the window while an owned effect remained unresolved. Coverage is not the fraction of all effects that we understand.</div>
+<div class="grid"><div class="card"><h3>Average</h3><p>Sum of value × observed duration, divided by observed duration. The headline averages synchronous totals—not contributor averages from mismatched windows.</p></div><div class="card"><h3>Peak & uptime</h3><p>Peak is the largest known sampled bonus. Uptime is known nonzero time divided by known time. Negative bonuses also count as active.</p></div><div class="card"><h3>Hit weighting</h3><p>Support is narrow: Hawkeye Sight uses confirmed weak-point evidence for its known branch. General burning/shock conditions are not yet reliably measured per hit.</p></div></div>
+</section>
+
+<section id="display"><div class="eyebrow">05 / Trust boundaries</div><h2>What makes it onto the screen?</h2><div class="grid two"><div class="card"><h3>Accepted</h3><ul><li>Reviewed static rules with known inputs.</li><li>Fresh, resolved status descriptions with recognizable metrics and sufficient source identity.</li><li>One source-level bonus replacing multiple catalogue copies, explicitly labelled combined.</li><li>Learned inactive zero after a complete scan confirms the known status is gone and the ownership signature still matches.</li><li>Fresh retained statuses with explicit known gem/scroll/blessing identity even after inventory ownership disappears.</li></ul></div><div class="card"><h3>Still unresolved or separate</h3><ul><li>Competing live readings for the same source and metric.</li><li>Conditional maxima presented only in an item description.</li><li>Unverified target conditions, next-shot applicability and unfamiliar formulas.</li><li>Base damage, additive bonuses and independent multipliers are not indiscriminately added together.</li><li>Named hero abilities are mapped conservatively. Seasonal Energy Orb is not automatically Crown Prince’s primary skill.</li></ul></div></div>
+<details><summary>Why a status icon is useful, but not sufficient</summary><p>We read the game’s status objects and their descriptions; we do not perform image recognition on the HUD. An icon proves the game is presenting a status. It does not, by itself, prove which target or shot received a bonus, whether a counter is the amount, or whether two statuses should stack.</p></details>
+<details><summary>Why Lucky Shot and CritX look different</summary><p>The Lucky Shot headline is an observed weapon-hit estimate. CritX is a current weapon property. Neither follows exactly the same percentage-total averaging and asterisk logic as the other bonus headlines.</p></details>
+<details><summary>Performance and debug logging</summary><p>v0.13.48 caches Build contributor data between sampled updates and caps the named-ability text cache at 1,024 entries. Layout and drawing still run in the GUI. <code>build-menu-cache-profile</code> reports contributor-cache rebuild time roughly every five seconds while it rebuilds in an open menu; it is not a complete frame-time measurement.</p><p>Research output uses queues and storage limits. The installed debug configuration allows 2,048 MiB per session and 8,192 MiB for the trace directory. Larger storage limits do not prevent queue drops. A complete <code>displayed-bonus-snapshot</code> requires every numbered chunk for that time/player/epoch/weapon.</p></details>
+</section>
+
+<section id="sources"><div class="eyebrow">06 / Inspect the implementation</div><h2>Where to look in the code</h2><p class="muted">These links are relative to this report in the repository’s docs folder. Samples came from local Research JSONL files; this report embeds the relevant excerpts and needs no network connection.</p><div class="grid two"><div class="card"><h3>Capture & evidence</h3><ul><li><a href="../src/CharacterSheet/EffectiveDiagnostics.cs">EffectiveDiagnostics.cs</a> — property, state and formula hooks</li><li><a href="../src/CharacterSheet/TooltipDiagnostics.cs">TooltipDiagnostics.cs</a> — status-tooltip observations</li><li><a href="../src/CharacterSheet/InventoryCapture.cs">InventoryCapture.cs</a> — rotating snapshots</li><li><a href="../src/CharacterSheet/BaseLsc.cs">BaseLsc.cs</a> — ownership and weapon reads</li><li><a href="../src/CharacterSheet/DamageCapture.cs">DamageCapture.cs</a> — damage callback</li><li><a href="../src/CharacterSheet/AuthoritativeDamage.cs">AuthoritativeDamage.cs</a> — scoreboard reconciliation</li></ul></div><div class="card"><h3>Interpretation & display</h3><ul><li><a href="../src/CharacterSheet/EffectRefreshDiagnostic.cs">EffectRefreshDiagnostic.cs</a> — live status evaluation</li><li><a href="../src/CharacterSheet/EffectiveContributionMerge.cs">EffectiveContributionMerge.cs</a> — attribution and replacement</li><li><a href="../src/CharacterSheet/InactiveBonusRules.cs">InactiveBonusRules.cs</a> — learned absence</li><li><a href="../src/CharacterSheet/NamedAbilityBonuses.cs">NamedAbilityBonuses.cs</a> — primary/secondary mapping</li><li><a href="../src/CharacterSheet/BonusCombatWindow.cs">BonusCombatWindow.cs</a> — window arithmetic</li><li><a href="../src/CharacterSheet/BonusTracking.cs">BonusTracking.cs</a> — sampled totals and logs</li><li><a href="../src/CharacterSheet/StatsScreen.cs">StatsScreen.cs</a> — final UI and caching</li></ul></div></div></section>
+<footer>Implementation snapshot: v0.13.48 · Historical samples: 15 October 2026 · Examples use real observed values where labelled; interactive arithmetic and UI mockup are explanatory. This report describes bonus attribution, not a verified per-item share of final damage.</footer>
+</main><script>
+document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>{
+  document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===button)));
+  document.querySelectorAll('.sample').forEach(panel=>panel.hidden=panel.id!==button.dataset.tab);
+}));
+document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
+  document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+  document.querySelectorAll('tr[data-kind]').forEach(row=>row.hidden=button.dataset.filter!=='all'&&row.dataset.kind!==button.dataset.filter);
+}));
+document.getElementById('active').addEventListener('input',event=>{
+  const seconds=Number(event.target.value);
+  document.getElementById('seconds').textContent=seconds+' seconds';
+  document.getElementById('avg').textContent='+'+seconds+'%';
+  document.getElementById('uptime').textContent=(seconds/30*100).toFixed(0)+'%';
+  document.getElementById('activebar').style.width=(seconds/30*100)+'%';
+  document.getElementById('equation').textContent='(30% × '+seconds+'s + 0% × '+(30-seconds)+'s) ÷ 30s = +'+seconds+'%';
+});
+</script><script>const sampleRecords = [
+  {
+    "name": "Weapon Fodder",
+    "sid": 39904,
+    "template": "+(ST39904_DamRatio/100)% Weapon DMG.",
+    "inputs": {
+      "ST39904_DamRatio": 5500,
+      "n": 0
+    },
+    "result": "+55% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(ST39904_DamRatio/100)",
+        "answer": "55"
+      }
+    ],
+    "utc": "2026-10-15T23:03:22.8535143Z",
+    "trace": "trace-20261015-223642-951"
+  },
+  {
+    "name": "Weapon Fodder",
+    "sid": 39904,
+    "template": "+(ST39904_DamRatio/100)% Weapon DMG.",
+    "inputs": {
+      "ST39904_DamRatio": 4000,
+      "n": 0
+    },
+    "result": "+40% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(ST39904_DamRatio/100)",
+        "answer": "40"
+      }
+    ],
+    "utc": "2026-10-15T18:59:09.8447329Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Skill Fodder",
+    "sid": 39903,
+    "template": "+(ST39903_DamRatio/100)% Skill DMG.",
+    "inputs": {
+      "ST39903_DamRatio": 9500,
+      "n": 0
+    },
+    "result": "+95% Skill DMG.",
+    "calculations": [
+      {
+        "expression": "(ST39903_DamRatio/100)",
+        "answer": "95"
+      }
+    ],
+    "utc": "2026-10-15T20:11:26.9731569Z",
+    "trace": "trace-20261015-195042-613"
+  },
+  {
+    "name": "Skill Fodder",
+    "sid": 39903,
+    "template": "+(ST39903_DamRatio/100)% Skill DMG.",
+    "inputs": {
+      "ST39903_DamRatio": 1500,
+      "n": 0
+    },
+    "result": "+15% Skill DMG.",
+    "calculations": [
+      {
+        "expression": "(ST39903_DamRatio/100)",
+        "answer": "15"
+      }
+    ],
+    "utc": "2026-10-15T19:04:39.6140677Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Vindictive Nature",
+    "sid": 1495,
+    "template": "+40% Weapon DMG and Skill DMG, and +100% DMG dealt to the enemy who hits you.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "+40% Weapon DMG and Skill DMG, and +100% DMG dealt to the enemy who hits you.",
+    "calculations": [],
+    "utc": "2026-10-15T18:57:42.2410115Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Damage Boost",
+    "sid": 39878,
+    "template": "+(n)% \u003cb\u003eAll DMG\u003c/b\u003e Dealt.",
+    "inputs": {
+      "n": 60
+    },
+    "result": "+60% \u003cb\u003eAll DMG\u003c/b\u003e Dealt.",
+    "calculations": [
+      {
+        "expression": "(n)",
+        "answer": "60"
+      }
+    ],
+    "utc": "2026-10-14T06:32:27.8245Z",
+    "trace": "trace-20261014-063051-994"
+  },
+  {
+    "name": "Last Stand",
+    "sid": 32230,
+    "template": "+(lvl*30)% Weapon DMG and Skill DMG, +(lvl*15+5)% Rate of Fire, +(lvl*5+5)% DMG Resistance.",
+    "inputs": {
+      "lvl": 2,
+      "n": 0
+    },
+    "result": "+60% Weapon DMG and Skill DMG, +35% Rate of Fire, +15% DMG Resistance.",
+    "calculations": [
+      {
+        "expression": "(lvl*30)",
+        "answer": "60"
+      },
+      {
+        "expression": "(lvl*15+5)",
+        "answer": "35"
+      },
+      {
+        "expression": "(lvl*5+5)",
+        "answer": "15"
+      }
+    ],
+    "utc": "2026-10-15T18:31:15.4705259Z",
+    "trace": "trace-20261015-181046-869"
+  },
+  {
+    "name": "Fully Equipped",
+    "sid": 32834,
+    "template": "Gain +(lvl*25+50)% Weapon DMG and Skill DMG. Each weapon shot that hits an enemy restores (lvl*1) Armor, up to (lvl*6+6) Armor per second.",
+    "inputs": {
+      "lvl": 1,
+      "n": 0
+    },
+    "result": "Gain +75% Weapon DMG and Skill DMG. Each weapon shot that hits an enemy restores 1 Armor, up to 12 Armor per second.",
+    "calculations": [
+      {
+        "expression": "(lvl*25+50)",
+        "answer": "75"
+      },
+      {
+        "expression": "(lvl*1)",
+        "answer": "1"
+      },
+      {
+        "expression": "(lvl*6+6)",
+        "answer": "12"
+      }
+    ],
+    "utc": "2026-10-14T06:34:50.7399315Z",
+    "trace": "trace-20261014-063051-994"
+  },
+  {
+    "name": "Merciless Combo",
+    "sid": 1190,
+    "template": "+(n*15%) Weapon DMG.",
+    "inputs": {
+      "n": 34
+    },
+    "result": "+510% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(n*15%)",
+        "answer": "510%"
+      }
+    ],
+    "utc": "2026-10-15T19:02:55.2309155Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Merciless Combo",
+    "sid": 1190,
+    "template": "+(n*15%) Weapon DMG.",
+    "inputs": {
+      "n": 11
+    },
+    "result": "+165% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(n*15%)",
+        "answer": "165%"
+      }
+    ],
+    "utc": "2026-10-15T18:58:01.8543185Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Firepower Upgrade",
+    "sid": 39829,
+    "template": "+(dam)% Weapon DMG.",
+    "inputs": {
+      "ExcessiveDam": 60,
+      "dam": 60,
+      "n": 3
+    },
+    "result": "+60% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(dam)",
+        "answer": "60"
+      }
+    ],
+    "utc": "2026-10-15T19:02:58.7519648Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Firepower Upgrade",
+    "sid": 39829,
+    "template": "+(dam)% Weapon DMG.",
+    "inputs": {
+      "ExcessiveDam": 24,
+      "dam": 24,
+      "n": 0
+    },
+    "result": "+24% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(dam)",
+        "answer": "24"
+      }
+    ],
+    "utc": "2026-10-15T18:58:23.1122407Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Arcane Surge",
+    "sid": 39914,
+    "template": "+(ResAddDamRate/100)% Primary Skill DMG.",
+    "inputs": {
+      "ResAddDamRate": 1200,
+      "n": 0
+    },
+    "result": "+12% Primary Skill DMG.",
+    "calculations": [
+      {
+        "expression": "(ResAddDamRate/100)",
+        "answer": "12"
+      }
+    ],
+    "utc": "2026-10-15T22:40:15.6476746Z",
+    "trace": "trace-20261015-223642-951"
+  },
+  {
+    "name": "Soul Echo",
+    "sid": 39875,
+    "template": "+(dam*n)% Secondary Skill DMG.",
+    "inputs": {
+      "ExcessiveDam": 4,
+      "dam": 4,
+      "n": 2
+    },
+    "result": "+8% Secondary Skill DMG.",
+    "calculations": [
+      {
+        "expression": "(dam*n)",
+        "answer": "8"
+      }
+    ],
+    "utc": "2026-10-15T19:53:10.427658Z",
+    "trace": "trace-20261015-195042-613"
+  },
+  {
+    "name": "ABYSSAL SERPENT Phantom Affix",
+    "sid": 39966,
+    "template": "+(n*dam/100)% Secondary Skill DMG.",
+    "inputs": {
+      "ExcessiveDam": 300,
+      "dam": 300,
+      "n": 1
+    },
+    "result": "+3% Secondary Skill DMG.",
+    "calculations": [
+      {
+        "expression": "(n*dam/100)",
+        "answer": "3"
+      }
+    ],
+    "utc": "2026-10-15T22:42:46.2010146Z",
+    "trace": "trace-20261015-223642-951"
+  },
+  {
+    "name": "Mana Infusion",
+    "sid": 39892,
+    "template": "Next Primary Skill DMG +(n*dam/100)%.",
+    "inputs": {
+      "ExcessiveDam": 400,
+      "dam": 400,
+      "n": 11
+    },
+    "result": "Next Primary Skill DMG +44%.",
+    "calculations": [
+      {
+        "expression": "(n*dam/100)",
+        "answer": "44"
+      }
+    ],
+    "utc": "2026-10-15T18:58:10.9220433Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "POLE MONARCH Orb",
+    "sid": 39828,
+    "template": "(dam) DMG stored.",
+    "inputs": {
+      "ExcessiveDam": 73285,
+      "dam": 73285,
+      "n": 0
+    },
+    "result": "73285 DMG stored.",
+    "calculations": [
+      {
+        "expression": "(dam)",
+        "answer": "73285"
+      }
+    ],
+    "utc": "2026-10-14T06:40:10.4407294Z",
+    "trace": "trace-20261014-063051-994"
+  },
+  {
+    "name": "CritX",
+    "sid": 39827,
+    "template": "CritX +((n+dam)/100)x.",
+    "inputs": {
+      "ExcessiveDam": 40,
+      "dam": 40,
+      "n": 100
+    },
+    "result": "CritX +1.4x.",
+    "calculations": [
+      {
+        "expression": "(n+dam)",
+        "answer": "140"
+      },
+      {
+        "expression": "(140/100)",
+        "answer": "1.4"
+      }
+    ],
+    "utc": "2026-10-15T22:59:24.5183845Z",
+    "trace": "trace-20261015-223642-951"
+  },
+  {
+    "name": "Mystic Mirror: Yang",
+    "sid": 1094,
+    "template": "+50% DMG.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "+50% DMG.",
+    "calculations": [],
+    "utc": "2026-10-15T22:53:38.4762986Z",
+    "trace": "trace-20261015-223642-951"
+  },
+  {
+    "name": "Shock Effect",
+    "sid": 20028,
+    "template": "+10% DMG taken.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "+10% DMG taken.",
+    "calculations": [],
+    "utc": "2026-10-15T18:15:17.728196Z",
+    "trace": "trace-20261015-181046-869"
+  },
+  {
+    "name": "Decay Effect",
+    "sid": 20027,
+    "template": "Movement Speed -50%.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "Movement Speed -50%.",
+    "calculations": [],
+    "utc": "2026-10-15T18:16:39.4049636Z",
+    "trace": "trace-20261015-181046-869"
+  },
+  {
+    "name": "Life Guardian",
+    "sid": 32479,
+    "template": "Prevents death on the next lethal hit.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "Prevents death on the next lethal hit.",
+    "calculations": [],
+    "utc": "2026-10-15T18:11:58.8573116Z",
+    "trace": "trace-20261015-181046-869"
+  },
+  {
+    "name": "Steady Stance",
+    "sid": 32625,
+    "template": "Cooling down.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "Cooling down.",
+    "calculations": [],
+    "utc": "2026-10-15T19:54:02.3846119Z",
+    "trace": "trace-20261015-195042-613"
+  },
+  {
+    "name": "Fierce Wings",
+    "sid": 32204,
+    "template": "+(lvl*50%) Weapon DMG on next shot.",
+    "inputs": {
+      "lvl": 1,
+      "n": 0
+    },
+    "result": "+50% Weapon DMG on next shot.",
+    "calculations": [
+      {
+        "expression": "(lvl*50%)",
+        "answer": "50%"
+      }
+    ],
+    "utc": "2026-10-15T18:59:20.4010205Z",
+    "trace": "trace-20261015-185018-351"
+  },
+  {
+    "name": "Victory Rush",
+    "sid": 32846,
+    "template": "+(lvl*20)% Weapon DMG.",
+    "inputs": {
+      "lvl": 1,
+      "n": 1
+    },
+    "result": "+20% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(lvl*20)",
+        "answer": "20"
+      }
+    ],
+    "utc": "2026-10-15T18:16:01.5557428Z",
+    "trace": "trace-20261015-181046-869"
+  },
+  {
+    "name": "Victory Rush",
+    "sid": 32847,
+    "template": "+(lvl*40)% Weapon DMG.",
+    "inputs": {
+      "lvl": 1,
+      "n": 1
+    },
+    "result": "+40% Weapon DMG.",
+    "calculations": [
+      {
+        "expression": "(lvl*40)",
+        "answer": "40"
+      }
+    ],
+    "utc": "2026-10-15T18:16:37.8936265Z",
+    "trace": "trace-20261015-181046-869"
+  },
+  {
+    "name": "Mystic Mirror: Yin",
+    "sid": 1093,
+    "template": "+20% DMG Resistance.",
+    "inputs": {
+      "n": 0
+    },
+    "result": "+20% DMG Resistance.",
+    "calculations": [],
+    "utc": "2026-10-15T22:56:03.2271726Z",
+    "trace": "trace-20261015-223642-951"
+  }
+];
+const sampleNotes={
+39904:['Live source total','Named variable → percentage','Weapon Damage','Read ST39904_DamRatio, let the game evaluate /100, then parse the Weapon DMG clause.','A fresh source-identified reading replaces matching Weapon Fodder catalogue amounts once, including multiple copies. If no copy is equipped, a known explicit source can appear as retained status.','The number is a source total; it does not tell us how much came from each gem or sale.'],
+39903:['Live source total','Same structure, different metric','Skill Damage','Read ST39903_DamRatio and evaluate /100. The parser assigns general Skill Damage, not primary-only damage.','Use one fresh source-level value in the general Skill Damage total. The same merge machinery handles this and Weapon Fodder.','These snapshots are separate observations, not a controlled experiment measuring one gem’s impact.'],
+1190:['Live source total','Stack count × percentage','Weapon Damage','The game evaluates the count-dependent formula using n from this status. A returned percentage keeps its percent sign.','The recognized Weapon Damage amount is eligible for source matching and the 30-second total. A changing stack count produces changing samples.','A large current stack bonus is neither its 30-second average nor its percentage share of final damage.'],
+39829:['Live source total','Resource / state inputs','Weapon Damage','The evaluator uses this status’s provided inputs to produce the current Weapon Damage clause.','A successful merge replaces the catalogue amount instead of adding a live amount on top of it.','This explains why a listed base amount and the captured live amount can differ.'],
+39914:['Skill scope','Primary-only bonus','Primary Skill Damage → additive','The resolved text explicitly says Primary Skill DMG. No named-ability inference is needed.','The percentage belongs to the primary additive metric and its own time history.','It does not increase the general Skill Damage headline; those are separate scopes.'],
+39875:['Skill scope','Amount × stack count','Secondary Skill Damage → additive','The native expression combines dam with n. ExcessiveDam is copied into the dam input before evaluation.','The resulting Secondary Skill DMG clause is a candidate for the secondary additive total.','We still need a unique source mapping and fresh data; rendering a formula alone does not guarantee a displayed contribution.'],
+39966:['Skill scope','Scaled amount × count','Secondary Skill Damage → additive','The template multiplies n by dam and divides by 100. The division is part of the game expression, not a guessed universal conversion.','Parse the resolved secondary-skill percentage, then run the normal source merge and averaging steps.','Compare this formula with Soul Echo: similar inputs can use different scaling.'],
+1495:['Mixed clauses','Accept one clause, leave another scoped','Weapon Damage + Skill Damage','The paired first clause yields two separate +40% metrics. The comma-separated target-specific clause does not match an unqualified damage metric.','The general weapon/skill values can enter their respective totals. The +100% against the attacker is not added to either general total.','One successfully rendered status can still contain an unmeasured part. A parsed clause is not proof that every clause is covered.'],
+39878:['Mixed clauses','Formatting markup around a metric','All Damage','Strip supported bold tags, then recognize All DMG Dealt as its own metric.','The result goes to the All Damage headline rather than being inserted again into both weapon and skill numbers.','The tracker does not infer the complete stacking formula between this and other damage layers.'],
+32230:['Mixed clauses','Two damage metrics + fire rate + defense','Weapon Damage, Skill Damage, Rate of Fire','The shared paired-clause grammar extracts both damage bonuses; the next recognized clause yields Rate of Fire.','Each recognized metric gets a separate contribution and history. DMG Resistance is outside this effective damage-parser vocabulary.','Three accepted values do not imply we also captured the defensive component in the damage totals.'],
+32834:['Mixed clauses','Separate sentences with different purposes','Weapon Damage + Skill Damage','Remove the optional Gain prefix and parse the first sentence’s paired damage bonus. The separate recovery sentence contains per and is rejected by the conditional guard.','The paired +75% values are eligible for their own source-matched totals. Recovery does not become damage.','Sentence boundaries matter: unrelated recovery wording should not prevent reading a clear damage sentence.'],
+39892:['Scoped / unsupported','Next use, not every use','Not in the general primary additive headline','Evaluation succeeds, but Next Primary Skill DMG is not a supported unqualified metric in the effective parser.','The captured number remains evidence; it is not promoted into a bonus applying to all primary skill damage.','We would need a separate next-use scope and consumption/hit evidence to represent this accurately.'],
+32204:['Scoped / unsupported','Next shot restriction','Not in the general weapon headline','The suffix on next shot prevents the clause from matching the whole unqualified Weapon DMG pattern.','Keep the result in the logs; do not present +50% as an always-applicable weapon bonus.','The status can be active while only one future shot is entitled to the bonus.'],
+39828:['Scoped / unsupported','Stored amount rather than percentage','Not a damage-bonus percentage','The game resolves dam into an amount of stored damage. The rendered output has no percentage bonus metric.','The stored amount is diagnostic evidence for the orb. Seasonal damage totals have a separate scoreboard/reconciliation path.','Stored damage is not the damage already dealt, and neither quantity is an additive percent bonus.'],
+39827:['Scoped / unsupported','Multiplier unit','Not added by the effective percentage parser','The formula returns a value followed by x. The current effective parser recognizes percentage bonus clauses, not this multiplier clause.','The Build tab’s CritX headline comes from the current weapon property through a different path.','Do not add this status result again to that weapon property without verifying whether it is already included.'],
+1094:['Scoped / unsupported','Ambiguous generic damage','No recognized effective damage metric','The text contains a valid percentage but only says DMG. The parser has no generic DMG entry.','This status does not directly enter an effective Weapon, Skill, or All Damage bonus row.','A familiar-looking number is not enough to establish its damage scope or stacking layer.'],
+32846:['Live source total','Related states for one source','Weapon Damage candidate','The +20% Weapon DMG clause parses. Source identity links it to Victory Rush.','It can merge when there is one unambiguous reading for that source and metric.','Victory Rush has related state definitions. Multiple competing readings are rejected rather than automatically summed.'],
+32847:['Live source total','Same source, another state definition','Weapon Damage candidate','This different state definition also renders a Weapon DMG clause. Its definition ID alone does not make it a separate item.','The merge groups candidates by source identity and metric. A conflict can leave the contribution unresolved.','Compare with the other Victory Rush sample: this is why we need source grouping in addition to text parsing.'],
+1093:['Not outgoing damage','Defense percentage','Excluded from outgoing-damage parser','The rendered metric is DMG Resistance, not damage dealt.','No offensive bonus is created from this status.','Successfully reading a percentage does not make it an outgoing damage modifier.'],
+20028:['Not outgoing damage','Damage taken by the affected unit','Excluded from outgoing-damage parser','The suffix taken is meaningful and is not accepted as outgoing damage.','The status is observable, but this sample does not establish a bonus to the player’s damage against a target.','Target-side debuffs require target identity and per-hit applicability; a player status sample does not establish that.'],
+20027:['Not outgoing damage','Movement modifier','Outside this damage parser','Movement Speed -50% is a numeric movement clause. It is not in the effective damage metric dictionary.','This capture does not add a damage contribution. Other reviewed catalogue rules can represent movement separately.','Negative numbers and percentages need their metric and scope, not just their sign.'],
+32479:['Not outgoing damage','Protection without numeric damage','No outgoing damage value','The description states a death-prevention behavior and contains no supported damage percentage.','The status may matter enormously to the run, but has no numeric damage contribution through this path.','Not counted as damage does not mean the effect is useless or uncaptured.'],
+32625:['Not outgoing damage','Lifecycle message','No bonus value from this description','Cooling down is valid status text, but does not supply a numeric metric.','Retain it as status evidence rather than guessing zero damage or inventing a listed bonus.','A cooldown indicator is not equivalent to a complete inactive-zero observation for every effect belonging to an item.']
+};
+const catalogue=document.getElementById('sample-cards');
+const categories=[...new Set(Object.values(sampleNotes).map(n=>n[0]))];
+const categorySelect=document.getElementById('sample-category');
+categories.forEach(category=>{const option=document.createElement('option');option.value=category;option.textContent=category;categorySelect.append(option);});
+function element(tag,text,className){const el=document.createElement(tag);el.textContent=text;if(className)el.className=className;return el;}
+sampleRecords.forEach((sample,index)=>{
+  const note=sampleNotes[sample.sid];if(!note)return;
+  const article=document.createElement('article');article.className='card sample-entry';article.dataset.category=note[0];article.dataset.search=[sample.name,sample.sid,sample.result,...note].join(' ').toLowerCase();
+  article.append(element('div',String(index+1).padStart(2,'0')+' / '+note[0],'eyebrow'),element('h3',sample.name),element('p',note[1],'muted'));
+  article.append(element('pre',sample.result));
+  const steps=document.createElement('dl');
+  for(const [title,body] of [['1 · Resolve the text',note[3]],['2 · Process the value',note[4]],['3 · Display destination',note[2]],['Watch for',note[5]]]){steps.append(element('dt',title),element('dd',body));}article.append(steps);
+  const details=document.createElement('details');details.append(element('summary','Inspect raw template, inputs & evaluator output'));
+  details.append(element('pre',JSON.stringify({sid:sample.sid,description:sample.template,inputs:sample.inputs,calculations:sample.calculations,result:sample.result},null,2)));
+  details.append(element('p',sample.trace+' · '+sample.utc+' · effect-refresh-result','small muted'));article.append(details);catalogue.append(article);
+});
+function filterSamples(){const query=document.getElementById('sample-search').value.trim().toLowerCase();const category=categorySelect.value;let count=0;document.querySelectorAll('.sample-entry').forEach(card=>{card.hidden=!(category==='all'||card.dataset.category===category)||!card.dataset.search.includes(query);if(!card.hidden)count++;});document.getElementById('sample-count').textContent=count+' of '+sampleRecords.length+' samples shown';}
+document.getElementById('sample-search').addEventListener('input',filterSamples);categorySelect.addEventListener('change',filterSamples);filterSamples();
+</script></body></html>

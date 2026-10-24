@@ -1,0 +1,682 @@
+{
+  "session": "trace-20261017-040723-282",
+  "note": "Captured formula results with original file, line and UTC. Controlled merge contexts in tests are not a reconstructed gameplay timeline.",
+  "records": [
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:36:08.8121603Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -1433808,
+        "stateId": 28809,
+        "sid": 39988,
+        "name": "Movement Speed Fodder",
+        "description": "Movement Speed +(ST39988_AddRatio/100)%.",
+        "inputs": {
+          "ST39988_AddRatio": 1000,
+          "n": 0
+        },
+        "result": "Movement Speed +10%.",
+        "calculations": [
+          {
+            "expression": "(ST39988_AddRatio/100)",
+            "answer": "10"
+          }
+        ],
+        "durationMs": 0.0899,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part40.jsonl",
+        "line": 5694,
+        "utc": "2026-10-17T04:36:08.8121773Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:45:25.8009449Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -1942598,
+        "stateId": 42713,
+        "sid": 39884,
+        "name": "WIND GOD Tornado Affix",
+        "description": "Skill <b>Final DMG</b> +(n/100)%.",
+        "inputs": {
+          "n": 504
+        },
+        "result": "Skill <b>Final DMG</b> +5.04%.",
+        "calculations": [
+          {
+            "expression": "(n/100)",
+            "answer": "5.04"
+          }
+        ],
+        "durationMs": 0.0966,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part52.jsonl",
+        "line": 9155,
+        "utc": "2026-10-17T04:45:25.8009615Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:46:17.5486465Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -2358820,
+        "stateId": 42713,
+        "sid": 39884,
+        "name": "WIND GOD Tornado Affix",
+        "description": "Skill <b>Final DMG</b> +(n/100)%.",
+        "inputs": {
+          "n": 828
+        },
+        "result": "Skill <b>Final DMG</b> +8.28%.",
+        "calculations": [
+          {
+            "expression": "(n/100)",
+            "answer": "8.28"
+          }
+        ],
+        "durationMs": 0.0808,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part53.jsonl",
+        "line": 6409,
+        "utc": "2026-10-17T04:46:17.5486597Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:50:22.7176138Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -2358820,
+        "stateId": 57508,
+        "sid": 1097,
+        "name": "Elemental Cube: Lightning",
+        "description": "+50% Lightning DMG.",
+        "inputs": {
+          "n": 0
+        },
+        "result": "+50% Lightning DMG.",
+        "calculations": [],
+        "durationMs": 0.0023,
+        "source": "game-static-description"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part63.jsonl",
+        "line": 3461,
+        "utc": "2026-10-17T04:50:22.7176209Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:50:23.723455Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -2358820,
+        "stateId": 42713,
+        "sid": 39884,
+        "name": "WIND GOD Tornado Affix",
+        "description": "Skill <b>Final DMG</b> +(n/100)%.",
+        "inputs": {
+          "n": 1134
+        },
+        "result": "Skill <b>Final DMG</b> +11.34%.",
+        "calculations": [
+          {
+            "expression": "(n/100)",
+            "answer": "11.34"
+          }
+        ],
+        "durationMs": 0.0804,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part63.jsonl",
+        "line": 4108,
+        "utc": "2026-10-17T04:50:23.7234672Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:56:41.4458224Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -2877244,
+        "stateId": 80091,
+        "sid": 1098,
+        "name": "Elemental Cube: Corrosion",
+        "description": "+50% Corrosion DMG.",
+        "inputs": {
+          "n": 0
+        },
+        "result": "+50% Corrosion DMG.",
+        "calculations": [],
+        "durationMs": 0.0012,
+        "source": "game-static-description"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part76.jsonl",
+        "line": 5080,
+        "utc": "2026-10-17T04:56:41.4458296Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:58:37.657853Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -2877244,
+        "stateId": 28809,
+        "sid": 39988,
+        "name": "Movement Speed Fodder",
+        "description": "Movement Speed +(ST39988_AddRatio/100)%.",
+        "inputs": {
+          "ST39988_AddRatio": 3400,
+          "n": 0
+        },
+        "result": "Movement Speed +34%.",
+        "calculations": [
+          {
+            "expression": "(ST39988_AddRatio/100)",
+            "answer": "34"
+          }
+        ],
+        "durationMs": 0.0895,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part81.jsonl",
+        "line": 4699,
+        "utc": "2026-10-17T04:58:37.6578694Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:05:44.2285002Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -3398422,
+        "stateId": 109362,
+        "sid": 1096,
+        "name": "Elemental Cube: Fire",
+        "description": "+50% Fire DMG.",
+        "inputs": {
+          "n": 0
+        },
+        "result": "+50% Fire DMG.",
+        "calculations": [],
+        "durationMs": 0.0012,
+        "source": "game-static-description"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part107.jsonl",
+        "line": 3077,
+        "utc": "2026-10-17T05:05:44.2285073Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:19:40.8866678Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -4261774,
+        "stateId": 139040,
+        "sid": 1236,
+        "name": "Field Support",
+        "description": "+(n*15%) Weapon DMG.",
+        "inputs": {
+          "n": 0
+        },
+        "result": "+0% Weapon DMG.",
+        "calculations": [
+          {
+            "expression": "(n*15%)",
+            "answer": "0%"
+          }
+        ],
+        "durationMs": 0.1294,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part125.jsonl",
+        "line": 2034,
+        "utc": "2026-10-17T05:19:40.8866856Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:24:57.2249865Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -4261774,
+        "stateId": 154341,
+        "sid": 39879,
+        "name": "Charged Shot",
+        "description": "Weapon DMG of this shot +(dam*n)%.",
+        "inputs": {
+          "ExcessiveDam": 30,
+          "dam": 30,
+          "n": 0
+        },
+        "result": "Weapon DMG of this shot +0%.",
+        "calculations": [
+          {
+            "expression": "(dam*n)",
+            "answer": "0"
+          }
+        ],
+        "durationMs": 0.0223,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part133.jsonl",
+        "line": 1188,
+        "utc": "2026-10-17T05:24:57.2249907Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:24:57.7298989Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -4261774,
+        "stateId": 28809,
+        "sid": 39988,
+        "name": "Movement Speed Fodder",
+        "description": "Movement Speed +(ST39988_AddRatio/100)%.",
+        "inputs": {
+          "ST39988_AddRatio": 4000,
+          "n": 0
+        },
+        "result": "Movement Speed +40%.",
+        "calculations": [
+          {
+            "expression": "(ST39988_AddRatio/100)",
+            "answer": "40"
+          }
+        ],
+        "durationMs": 0.0278,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part133.jsonl",
+        "line": 1269,
+        "utc": "2026-10-17T05:24:57.7299034Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:27:19.826676Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -4614208,
+        "stateId": 154341,
+        "sid": 39879,
+        "name": "Charged Shot",
+        "description": "Weapon DMG of this shot +(dam*n)%.",
+        "inputs": {
+          "ExcessiveDam": 30,
+          "dam": 30,
+          "n": 9
+        },
+        "result": "Weapon DMG of this shot +270%.",
+        "calculations": [
+          {
+            "expression": "(dam*n)",
+            "answer": "270"
+          }
+        ],
+        "durationMs": 0.0196,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part135.jsonl",
+        "line": 5001,
+        "utc": "2026-10-17T05:27:19.8266794Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:27:21.8426927Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -4614208,
+        "stateId": 154341,
+        "sid": 39879,
+        "name": "Charged Shot",
+        "description": "Weapon DMG of this shot +(dam*n)%.",
+        "inputs": {
+          "ExcessiveDam": 30,
+          "dam": 30,
+          "n": 11
+        },
+        "result": "Weapon DMG of this shot +330%.",
+        "calculations": [
+          {
+            "expression": "(dam*n)",
+            "answer": "330"
+          }
+        ],
+        "durationMs": 0.088,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part135.jsonl",
+        "line": 6241,
+        "utc": "2026-10-17T05:27:21.8427378Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:39:41.2695416Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -5362884,
+        "stateId": 28809,
+        "sid": 39988,
+        "name": "Movement Speed Fodder",
+        "description": "Movement Speed +(ST39988_AddRatio/100)%.",
+        "inputs": {
+          "ST39988_AddRatio": 3100,
+          "n": 0
+        },
+        "result": "Movement Speed +31%.",
+        "calculations": [
+          {
+            "expression": "(ST39988_AddRatio/100)",
+            "answer": "31"
+          }
+        ],
+        "durationMs": 0.0209,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part159.jsonl",
+        "line": 5977,
+        "utc": "2026-10-17T05:39:41.2695460Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:42:31.1877736Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -5741952,
+        "stateId": 245498,
+        "sid": 33069,
+        "name": "Undivided Attention",
+        "description": "+(n*30)% Skill DMG.",
+        "inputs": {
+          "n": 1
+        },
+        "result": "+30% Skill DMG.",
+        "calculations": [
+          {
+            "expression": "(n*30)",
+            "answer": "30"
+          }
+        ],
+        "durationMs": 0.0798,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part162.jsonl",
+        "line": 8613,
+        "utc": "2026-10-17T05:42:31.1877867Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:42:31.1878412Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -5741952,
+        "stateId": 245520,
+        "sid": 33070,
+        "name": "Undivided Attention",
+        "description": "+(n*30)% Weapon DMG.",
+        "inputs": {
+          "n": 1
+        },
+        "result": "+30% Weapon DMG.",
+        "calculations": [
+          {
+            "expression": "(n*30)",
+            "answer": "30"
+          }
+        ],
+        "durationMs": 0.022,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part162.jsonl",
+        "line": 8614,
+        "utc": "2026-10-17T05:42:31.1878455Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:43:10.693505Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -5923694,
+        "stateId": 245498,
+        "sid": 33069,
+        "name": "Undivided Attention",
+        "description": "+(n*30)% Skill DMG.",
+        "inputs": {
+          "n": 5
+        },
+        "result": "+150% Skill DMG.",
+        "calculations": [
+          {
+            "expression": "(n*30)",
+            "answer": "150"
+          }
+        ],
+        "durationMs": 0.0787,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part163.jsonl",
+        "line": 1043,
+        "utc": "2026-10-17T05:43:10.6935161Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:43:10.6935779Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -5923694,
+        "stateId": 245520,
+        "sid": 33070,
+        "name": "Undivided Attention",
+        "description": "+(n*30)% Weapon DMG.",
+        "inputs": {
+          "n": 5
+        },
+        "result": "+150% Weapon DMG.",
+        "calculations": [
+          {
+            "expression": "(n*30)",
+            "answer": "150"
+          }
+        ],
+        "durationMs": 0.0197,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part163.jsonl",
+        "line": 1044,
+        "utc": "2026-10-17T05:43:10.6935813Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:43:38.8764858Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -6022522,
+        "stateId": 251537,
+        "sid": 33070,
+        "name": "Undivided Attention",
+        "description": "+(n*30)% Weapon DMG.",
+        "inputs": {
+          "n": 2
+        },
+        "result": "+60% Weapon DMG.",
+        "calculations": [
+          {
+            "expression": "(n*30)",
+            "answer": "60"
+          }
+        ],
+        "durationMs": 0.0811,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part165.jsonl",
+        "line": 4927,
+        "utc": "2026-10-17T05:43:38.8764981Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:43:47.9575314Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -6022522,
+        "stateId": 256454,
+        "sid": 33069,
+        "name": "Undivided Attention",
+        "description": "+(n*30)% Skill DMG.",
+        "inputs": {
+          "n": 2
+        },
+        "result": "+60% Skill DMG.",
+        "calculations": [
+          {
+            "expression": "(n*30)",
+            "answer": "60"
+          }
+        ],
+        "durationMs": 0.0844,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part165.jsonl",
+        "line": 7495,
+        "utc": "2026-10-17T05:43:47.9575440Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:54:08.9101091Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -6688462,
+        "stateId": 28809,
+        "sid": 39988,
+        "name": "Movement Speed Fodder",
+        "description": "Movement Speed +(ST39988_AddRatio/100)%.",
+        "inputs": {
+          "ST39988_AddRatio": 2200,
+          "n": 0
+        },
+        "result": "Movement Speed +22%.",
+        "calculations": [
+          {
+            "expression": "(ST39988_AddRatio/100)",
+            "answer": "22"
+          }
+        ],
+        "durationMs": 0.0221,
+        "source": "diagnostic-game-evaluator"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part180.jsonl",
+        "line": 495,
+        "utc": "2026-10-17T05:54:08.9101139Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T04:39:44.6815091Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -1942598,
+        "stateId": 35618,
+        "sid": 1108,
+        "name": "Resolute",
+        "description": "+50% Movement Speed, +50% DMG Dealt.",
+        "inputs": {
+          "n": 0
+        },
+        "result": "+50% Movement Speed, +50% DMG Dealt.",
+        "calculations": [],
+        "durationMs": 0.0004,
+        "source": "game-static-description"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part46.jsonl",
+        "line": 2844,
+        "utc": "2026-10-17T04:39:44.6815112Z"
+      }
+    },
+    {
+      "kind": "effect-refresh-result",
+      "data": {
+        "utc": "2026-10-17T05:29:52.814574Z",
+        "player": 268437485,
+        "epoch": 0,
+        "scene": -5012540,
+        "stateId": 173272,
+        "sid": 1818,
+        "name": "Convergent Paths - Skill",
+        "description": "-20% Weapon DMG, +50% Skill DMG.",
+        "inputs": {
+          "n": 0
+        },
+        "result": "-20% Weapon DMG, +50% Skill DMG.",
+        "calculations": [],
+        "durationMs": 0.0005,
+        "source": "game-static-description"
+      },
+      "evidence": {
+        "file": "trace-20261017-040723-282-part140.jsonl",
+        "line": 2074,
+        "utc": "2026-10-17T05:29:52.8145757Z"
+      }
+    }
+  ]
+}
