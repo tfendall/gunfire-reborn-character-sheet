@@ -5,8 +5,13 @@ Research is disabled. No broad combat, outgoing hit, death, tooltip, or property
 research hooks are installed. No JSONL trace writer or callback journal starts.
 The original damage capture and authoritative scoreboard observer remain active.
 UseGameDamageTotals and ShowEffectiveBonuses in [Stats] default to true. They do
-not require research. UseGameDamageTotals also enables automatic scoreboard
-sampling, limited to one outstanding request and at most one request per second.
+not require research. Starting in 0.13.50, [Stats] AutomaticScoreboardSampling
+controls requests separately from receiving game totals (default true).
+ScoreboardRequestIntervalSeconds defaults to 10, clamped to 1-120 seconds.
+The wait starts after each response; one outstanding request, no timeout retries.
+Disable AutomaticScoreboardSampling for a zero-automatic-request comparison.
+Game-supplied scoreboard updates are still received with UseGameDamageTotals=true.
+Research off alone does not disable scoreboard requests. All changes need restart.
 The former [Diagnostics] AutomaticScoreboardSampling setting is no longer used.
 
 Turn observers back on

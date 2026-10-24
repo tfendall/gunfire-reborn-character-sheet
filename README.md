@@ -3,7 +3,7 @@
 Experimental Windows Steam mod showing damage totals, observed Lucky Shot Chance, cumulative build bonuses, and contributing items. Hold **C** to view; right-click while holding C to interact.
 
 - [Install, update, or uninstall](docs/INSTALL.md)
-- [Download version 0.13.49](https://github.com/tfendall/gunfire-reborn-character-sheet/releases/tag/v0.13.49)
+- [Download version 0.13.50](https://github.com/tfendall/gunfire-reborn-character-sheet/releases/tag/v0.13.50)
 - [Build and test](docs/DEVELOPMENT.md)
 - [Experimental release notes and limitations](docs/RELEASE_NOTES.md)
 - [Weapon damage: What powers this? (development)](docs/DAMAGE_POWERS.md)

@@ -3,7 +3,8 @@ using System.Text.Json;
 internal static class ScoreboardSampling
 {
     internal static bool Enabled, ObserverReady;
-    private static readonly ScoreboardSamplingState state=new();
+    private static ScoreboardSamplingState state=new();
+    internal static void Configure(double intervalSeconds)=>state=new(intervalSeconds);
     private static int requestedPlayer, requestedEpoch, requestedScene;
     private static bool failed;
     internal static void Tick()

@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [BepInPlugin("local.gunfire.statsdiagnostic", "Gunfire Character Sheet", Plugin.ModVersion)]
 public class Plugin : BasePlugin
 {
-    internal const string ModVersion = "0.13.49";
+    internal const string ModVersion = "0.13.50";
     public override void Load()
     {
         Panel.Logger = Log;
@@ -33,7 +33,10 @@ public class Plugin : BasePlugin
         CombatEvidence.Enabled = Research("CaptureCombatEvidence", true, "Broad packet/lifecycle combat evidence, including nonlocal entities. Read-only; bounded records and loss counters. Requires restart.");
         ScoreboardDiagnostic.Enabled = Config.Bind("Stats", "UseGameDamageTotals", true,
             "Use the game's scoreboard total and seasonal breakdown; show the remainder as Unattributed damage. Restart required.").Value;
-        ScoreboardSampling.Enabled = ScoreboardDiagnostic.Enabled;
+        ScoreboardSampling.Enabled = ScoreboardDiagnostic.Enabled && Config.Bind("Stats","AutomaticScoreboardSampling",true,
+            "Request game damage totals periodically. Disable to receive totals only when the game supplies them (for example through its scoreboard). Independent of research diagnostics. Restart required.").Value;
+        ScoreboardSampling.Configure(Config.Bind("Stats","ScoreboardRequestIntervalSeconds",10d,
+            "Seconds to wait after a scoreboard response before requesting again (1-120; default 10). Longer intervals reduce multiplayer request traffic but delay game-reported totals. Restart required.").Value);
         try { CombatEvidence.Install(); }
         catch(Exception ex) { CrashDiagnostics.Error("combat-evidence-install",ex); }
         TooltipDiagnostics.Enabled = Research("CaptureTooltipCalculations", false, "Observe status-tooltip calculation inputs, return values and final text when the game calls them. Diagnostic only; requires restart.");

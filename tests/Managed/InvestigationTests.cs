@@ -37,7 +37,34 @@ internal static class InvestigationTests
         orbLedger.Add(2,0x400800,30001,208);orbView.Observe(10,orbLedger,new(){{11,10}});
         check(orbView.View.Cells[("Seasonal · POLE MONARCH Orb","Unknown")]==10 && orbView.View.Cells.Count==1,
             "zero-score reset before equipping orb preserves later authoritative seasonal attribution");
-        var sampler=new ScoreboardSamplingState();
+        var sampler=new ScoreboardSamplingState(1);
+        var slower=new ScoreboardSamplingState();
+        check(slower.IntervalSeconds==10 && slower.Tick(0,true)==0 && slower.Tick(9.99,true)==0 && slower.Tick(10,true)==1,
+            "default scoreboard pacing waits ten seconds before first request");
+        slower.Response(10.2);
+        check(slower.Tick(20.19,true)==0 && slower.Tick(20.2,true)==2,
+            "default scoreboard pacing waits ten seconds after response");
+        check(slower.CheckTimeout(30.2) && slower.Tick(100,true)==0,
+            "slow polling never retries an unanswered request");
+        slower.Response(101);
+        slower.Tick(102,false);
+        check(slower.Tick(103,true)==0 && slower.Tick(112.99,true)==0 && slower.Tick(113,true)==3,
+            "eligibility changes preserve cooldown and avoid catch-up bursts");
+        check(new ScoreboardSamplingState(double.NaN).IntervalSeconds==10 && new ScoreboardSamplingState(0).IntervalSeconds==1 &&
+            new ScoreboardSamplingState(1000).IntervalSeconds==120,"scoreboard interval rejects invalid settings and stays bounded");
+        int Requests(double interval)
+        {
+            var clients=Enumerable.Range(0,3).Select(_=>new ScoreboardSamplingState(interval)).ToArray();int count=0;
+            for(int tick=0;tick<600;tick++)foreach(var client in clients)
+            {
+                double time=tick/10d;
+                if(client.Pending!=0 && time-client.SentAt>=0.2)client.Response(time);
+                if(client.Tick(time,true)!=0)count++;
+            }
+            return count;
+        }
+        check(Requests(10)<=18 && Requests(10)<Requests(1)*0.15,
+            "three simulated clients reduce scoreboard requests by over 85 percent at ten-second pacing");
         var authority=new AuthoritativeDamage();var ledger=new DamageLedger();
         ledger.Add(80,0x800800,30001);authority.Observe(100,ledger);
         check(authority.View.Total==100 && authority.View.Cells.Values.Sum()==100 && authority.View.Cells[("Unattributed damage","Unknown")]==20,
